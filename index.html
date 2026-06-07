@@ -424,7 +424,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.007</div>
+  <div class="version-footer">v1.0.008</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -477,9 +477,7 @@
   <div class="grade-caption" id="resultCaption">you have the reaction time of a</div>
   <div class="result-grade" id="resultGrade"></div>
   <div class="stats-row">
-    <div class="stat"><div class="stat-val" id="statBest">—</div><div class="stat-lbl">Best Avg</div></div>
-    <div class="stat"><div class="stat-val" id="statAvg">—</div><div class="stat-lbl">Average</div></div>
-    <div class="stat"><div class="stat-val" id="statStreak">0</div><div class="stat-lbl">Streak</div></div>
+    <div class="stat"><div class="stat-val" id="statBest">—</div><div class="stat-lbl">Best</div></div>
   </div>
   <div class="result-actions">
     <button class="btn-retry" id="btnRetry">AGAIN</button>
@@ -914,8 +912,7 @@ function soloResult(avg) {
   streak++;
   localStorage.setItem('rfx_streak', streak);
 
-  const best    = Math.min(...history);
-  const allAvg  = Math.round(history.reduce((a,b) => a+b, 0) / history.length);
+  const best = Math.min(...history);
 
   const timeEl  = document.getElementById('resultTime');
   const gradeEl = document.getElementById('resultGrade');
@@ -930,9 +927,7 @@ function soloResult(avg) {
   }
   gradeEl.textContent = `${g.emoji} ${g.label}`;
 
-  document.getElementById('statBest').textContent   = best + 'ms';
-  document.getElementById('statAvg').textContent    = allAvg + 'ms';
-  document.getElementById('statStreak').textContent = streak;
+  document.getElementById('statBest').textContent = best + 'ms';
   document.querySelector('#result .result-unit[style]').textContent = `avg of ${TAPS_PER_SET} taps`;
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
