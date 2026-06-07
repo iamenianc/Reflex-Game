@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "reflex": "^1.1.0",
+    "wrangler": "^4.98.0"
+  },
+  "allowScripts": {
+    "wrangler@4.98.0": true,
+    "esbuild@0.27.3": true,
+    "sharp@0.34.5": true,
+    "workerd@1.20260603.1": true
+  }
+}

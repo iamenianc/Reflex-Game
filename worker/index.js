@@ -9,8 +9,13 @@
 
 // ADMIN_KEY is injected at deploy time via: wrangler secret put ADMIN_KEY
 // It is never stored in code or committed to git.
+//
+// KV layout:
+//   leaderboard        → sorted index array [{tag, ms}, ...] (fast read for GET)
+//   score:ABCDE        → that tag's current best, JSON {tag, ms, at} (one key per player)
 const KV_KEY     = 'leaderboard';
-const MAX_STORED = 100;
+const SCORE_PFX  = 'score:';
+const MAX_STORED = 10;
 
 export default {
   async fetch(request, env) {
@@ -38,28 +43,35 @@ export default {
       try { body = await request.json(); } catch { return bad('invalid json', cors); }
 
       const { tag, ms } = body;
-      if (typeof tag !== 'string' || !/^[A-Z]{5}$/.test(tag))
-        return bad('tag must be 5 uppercase letters A-Z', cors);
+      if (typeof tag !== 'string' || !/^[A-Z]{1,6}$/.test(tag))
+        return bad('tag must be 1-6 uppercase letters A-Z', cors);
       if (typeof ms !== 'number' || !Number.isInteger(ms) || ms < 100 || ms > 999)
         return bad('ms must be an integer between 100 and 999', cors);
 
+      // 1. Read this tag's existing best — is this submission a new best?
+      const scoreKey = SCORE_PFX + tag;
+      const prevRaw  = await env.KV.get(scoreKey);
+      const prevMs   = prevRaw ? JSON.parse(prevRaw).ms : null;
+
+      if (prevMs !== null && ms >= prevMs)
+        return new Response('ok', { status: 200, headers: cors }); // not a new best, nothing to do
+
+      // 2. Write/overwrite this tag's own best-score key.
+      const record = { tag, ms, at: Date.now() };
+      await env.KV.put(scoreKey, JSON.stringify(record));
+
+      // 3. Read the leaderboard index, upsert this tag.
       const raw     = await env.KV.get(KV_KEY);
       const entries = raw ? JSON.parse(raw) : [];
-
-      // Keep only the best score per tag
       const idx = entries.findIndex(e => e.tag === tag);
-      if (idx !== -1) {
-        if (ms < entries[idx].ms) entries[idx].ms = ms;
-        // already have a better or equal score — no update needed otherwise
-      } else {
-        entries.push({ tag, ms });
-      }
+      if (idx !== -1) { entries[idx].ms = ms; entries[idx].at = record.at; }
+      else            entries.push({ tag, ms, at: record.at });
 
-      // Sort by ms ascending, keep top MAX_STORED
+      // 4. Sort by ms ascending, 5. trim to MAX_STORED, 6. write index back.
       entries.sort((a, b) => a.ms - b.ms);
       entries.splice(MAX_STORED);
-
       await env.KV.put(KV_KEY, JSON.stringify(entries));
+
       return new Response('ok', { status: 200, headers: cors });
     }
 
@@ -68,12 +80,13 @@ export default {
       if (url.searchParams.get('key') !== env.ADMIN_KEY)
         return new Response('forbidden', { status: 403, headers: cors });
       const tag = url.pathname.split('/')[2].toUpperCase();
-      if (!/^[A-Z]{5}$/.test(tag)) return bad('invalid tag', cors);
+      if (!/^[A-Z]{1,6}$/.test(tag)) return bad('invalid tag', cors);
 
       const raw     = await env.KV.get(KV_KEY);
       const entries = raw ? JSON.parse(raw) : [];
       const filtered = entries.filter(e => e.tag !== tag);
       await env.KV.put(KV_KEY, JSON.stringify(filtered));
+      await env.KV.delete(SCORE_PFX + tag); // remove the tag's own best-score key too
       return new Response('deleted', { status: 200, headers: cors });
     }
 

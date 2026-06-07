@@ -139,6 +139,19 @@
     transition: transform 0.1s;
   }
   .btn-tag-confirm:active { transform: scale(0.96); }
+  .btn-tag-skip {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 4px 12px;
+    margin-top: 4px;
+  }
+  .btn-tag-skip:hover { color: var(--text-dim); }
 
   /* ── LEADERBOARD ── */
   .leaderboard {
@@ -165,7 +178,8 @@
   .lb-row.lb-you { color: var(--amber); }
   .lb-rank { width: 20px; color: var(--muted); }
   .lb-tag  { flex: 1; }
-  .lb-ms   { color: var(--white); }
+  .lb-ms   { color: var(--white); width: 56px; text-align: right; }
+  .lb-date { color: var(--muted); font-size: 9px; width: 92px; text-align: right; }
 
   .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .version-footer { position: absolute; bottom: 18px; width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
@@ -543,10 +557,11 @@
 <!-- TAG MODAL -->
 <div class="tag-modal-overlay hidden" id="tagModal">
   <div class="tag-modal-title">WHO ARE YOU?</div>
-  <div class="tag-modal-sub">Pick a 5-letter tag.<br>This appears on the global leaderboard.</div>
-  <input class="tag-input" id="tagInput" type="text" maxlength="5" placeholder="ABCDE" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  <div class="tag-modal-sub">Pick a tag (1–6 letters).<br>This appears on the global leaderboard.</div>
+  <input class="tag-input" id="tagInput" type="text" maxlength="6" placeholder="ABCDEF" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
   <div class="tag-error" id="tagError"></div>
   <button class="btn-tag-confirm" id="btnTagConfirm">CONFIRM</button>
+  <button class="btn-tag-skip" id="btnTagSkip">skip</button>
 </div>
 
 <!-- HOME -->
@@ -565,7 +580,7 @@
     <div class="lb-title">Global Best</div>
     <div id="lbRows"></div>
   </div>
-  <div class="version-footer">v1.0.035</div>
+  <div class="version-footer">v1.0.037</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -1242,7 +1257,17 @@ function soloResult(avg, taps) {
   document.getElementById('statBest').textContent = best + 'ms';
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
-  submitScore(avg);
+
+  // Only a fast solo run (under 500ms) qualifies for the global leaderboard.
+  // Ask for a tag the first time the player qualifies, then submit.
+  if (avg < 500) {
+    if (isValidTag(playerTag)) {
+      submitScore(avg);
+    } else {
+      pendingScore = avg;
+      showTagModal();
+    }
+  }
 }
 
 // ── CHALLENGE RESULT ──
@@ -1467,8 +1492,9 @@ document.addEventListener('keyup',   blockKeyboard, { capture: true });
 // ── LEADERBOARD / TAG ──
 const WORKER_URL = 'https://reflex-scores.reflex-game.workers.dev';
 let playerTag = localStorage.getItem('rfx_tag') || '';
+let pendingScore = null; // qualifying solo score awaiting a tag before submit
 
-function isValidTag(t) { return /^[A-Z]{5}$/.test(t); }
+function isValidTag(t) { return /^[A-Z]{1,6}$/.test(t); }
 
 function showTagModal() {
   document.getElementById('tagModal').classList.remove('hidden');
@@ -1483,7 +1509,7 @@ const tagInput = document.getElementById('tagInput');
 const tagError = document.getElementById('tagError');
 
 tagInput.addEventListener('input', () => {
-  tagInput.value = tagInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
+  tagInput.value = tagInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
   tagError.textContent = '';
 });
 
@@ -1492,16 +1518,24 @@ tagInput.addEventListener('keydown', e => {
 });
 
 document.getElementById('btnTagConfirm').addEventListener('click', confirmTag);
+document.getElementById('btnTagSkip').addEventListener('click', () => {
+  pendingScore = null;
+  hideTagModal();
+});
 
 function confirmTag() {
   const val = tagInput.value.trim().toUpperCase();
   if (!isValidTag(val)) {
-    tagError.textContent = 'Exactly 5 letters A–Z only';
+    tagError.textContent = '1–6 letters A–Z only';
     return;
   }
   playerTag = val;
   localStorage.setItem('rfx_tag', val);
   hideTagModal();
+  if (pendingScore !== null) {
+    submitScore(pendingScore);
+    pendingScore = null;
+  }
   loadLeaderboard();
 }
 
@@ -1539,18 +1573,26 @@ function renderLeaderboard(entries) {
       <span class="lb-rank">${i + 1}</span>
       <span class="lb-tag">${e.tag}</span>
       <span class="lb-ms">${e.ms}ms</span>
+      <span class="lb-date">${fmtScoreDate(e.at)}</span>
     </div>`;
   }).join('');
+}
+
+// Format an epoch-ms timestamp as a compact local date + time.
+// Returns '' for missing/invalid values (older entries have no `at`).
+function fmtScoreDate(at) {
+  if (typeof at !== 'number' || !isFinite(at)) return '';
+  const d = new Date(at);
+  if (isNaN(d)) return '';
+  const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `${date} ${time}`;
 }
 
 // ── INIT ──
 updateBestDisplay();
 show('home');
-if (!isValidTag(playerTag)) {
-  showTagModal();
-} else {
-  loadLeaderboard();
-}
+loadLeaderboard();
 
 // ── PWA BOOTSTRAP ──
 // Generates a manifest and service worker entirely from JS blobs so the

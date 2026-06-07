@@ -1,0 +1,21 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "wrangler": "^4.98.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.3": true,
+    "sharp@0.34.5": true,
+    "workerd@1.20260603.1": true
+  }
+}
