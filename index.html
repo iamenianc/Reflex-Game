@@ -583,6 +583,31 @@ function soundBadResult() {
   playTone(260, 'sine', 0.3, 0.25, t);
 }
 
+// ── REACTION TONE ──
+let reactionOsc  = null;
+let reactionGain = null;
+
+function startReactionTone() {
+  const ctx = getAudioCtx();
+  reactionOsc  = ctx.createOscillator();
+  reactionGain = ctx.createGain();
+  reactionOsc.connect(reactionGain);
+  reactionGain.connect(ctx.destination);
+  reactionOsc.type = 'sine';
+  reactionOsc.frequency.setValueAtTime(880, ctx.currentTime);
+  reactionGain.gain.setValueAtTime(0.28, ctx.currentTime);
+  reactionOsc.start(ctx.currentTime);
+}
+
+function stopReactionTone() {
+  if (!reactionOsc) return;
+  const ctx = getAudioCtx();
+  reactionGain.gain.setValueAtTime(0, ctx.currentTime);
+  reactionOsc.stop(ctx.currentTime);
+  reactionOsc  = null;
+  reactionGain = null;
+}
+
 // ── LATENCY OFFSET ──
 // Compensates for display + touch digitizer latency. Conservative estimate.
 const LATENCY_OFFSET = 20; // ms
@@ -758,6 +783,7 @@ function triggerSlow() {
   tapStartTime = 0;
   setTaps   = [];
   setTapNum = 0;
+  stopReactionTone();
   soundSlow();
   if (mode === 'solo') {
     streak = 0;
@@ -777,6 +803,7 @@ function showTap() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
+      startReactionTone();
       slowTimeout = setTimeout(triggerSlow, 1000);
     });
   });
@@ -793,6 +820,7 @@ function handleTap(e) {
   if (!tapStartTime) return; // guard: fired before paint completed
   clearTimeout(slowTimeout);
   slowTimeout = null;
+  stopReactionTone();
   const ms = Math.max(1, Math.round(performance.now() - tapStartTime) - LATENCY_OFFSET);
   tapStartTime = 0; // prevent double-fire
 
