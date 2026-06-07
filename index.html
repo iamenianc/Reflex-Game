@@ -934,7 +934,7 @@ function showTap() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
-      startReactionTone(dontTapMode ? 750 : 780);
+      startReactionTone(dontTapMode ? 50 : 780);
       slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, 1500);
     });
   });
