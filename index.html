@@ -173,6 +173,7 @@
     font-size: clamp(30px, 9vw, 56px);
     letter-spacing: 0.04em;
     line-height: 1.1;
+    color: var(--red);
   }
   @keyframes tapPop {
     0% { transform: scale(0.8); opacity: 0; }
@@ -431,7 +432,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.018</div>
+  <div class="version-footer">v1.0.019</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -645,14 +646,14 @@ function soundBadResult() {
 let reactionOsc  = null;
 let reactionGain = null;
 
-function startReactionTone() {
+function startReactionTone(freq = 780) {
   const ctx = getAudioCtx();
   reactionOsc  = ctx.createOscillator();
   reactionGain = ctx.createGain();
   reactionOsc.connect(reactionGain);
   reactionGain.connect(ctx.destination);
   reactionOsc.type = 'sine';
-  reactionOsc.frequency.setValueAtTime(780, ctx.currentTime);
+  reactionOsc.frequency.setValueAtTime(freq, ctx.currentTime);
   reactionGain.gain.setValueAtTime(0.20, ctx.currentTime);
   reactionOsc.start(ctx.currentTime);
 }
@@ -933,7 +934,7 @@ function showTap() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
-      startReactionTone();
+      startReactionTone(dontTapMode ? 750 : 780);
       slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, 1500);
     });
   });
