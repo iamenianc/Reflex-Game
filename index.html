@@ -170,10 +170,15 @@
     animation: tapPop 0.15s ease-out forwards;
   }
   .tap-text.dont-tap {
-    font-size: clamp(30px, 9vw, 56px);
-    letter-spacing: 0.04em;
-    line-height: 1.1;
-    color: var(--red);
+    font-size: clamp(72px, 22vw, 140px);
+    letter-spacing: 0.08em;
+    line-height: 0.9;
+    color: #8b0000;
+    flex-direction: column;
+  }
+  .tap-text.dont-tap .dont-label {
+    font-size: clamp(28px, 8vw, 52px);
+    letter-spacing: 0.06em;
   }
   @keyframes tapPop {
     0% { transform: scale(0.8); opacity: 0; }
@@ -432,7 +437,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.019</div>
+  <div class="version-footer">v1.0.022</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -481,7 +486,6 @@
   <div class="result-label">Your time</div>
   <div class="result-time" id="resultTime">000</div>
   <div class="result-unit">milliseconds avg</div>
-  <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">avg of 5 taps</div>
   <div class="grade-caption" id="resultCaption">your reflex rating is</div>
   <div class="result-grade" id="resultGrade"></div>
   <div class="stats-row">
@@ -516,7 +520,6 @@
   <div class="round-player-name" id="crPlayerName"></div>
   <div class="round-time" id="crTime">000</div>
   <div class="round-unit">milliseconds avg</div>
-  <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">avg of 5 taps</div>
   <div class="grade-caption">your reflex rating is</div>
   <div class="round-grade" id="crGrade"></div>
   <div class="round-winner-tag hidden" id="crWinnerTag"></div>
@@ -928,13 +931,17 @@ function showTap() {
   dontTapMode = !atTapSlot && dontTapCount < 5 && (atGuaranteedSlot || Math.random() < 0.30);
   if (dontTapMode) { dontTapCount++; dontTapOccurred = true; }
   const tapTextEl = document.getElementById('tapText');
-  tapTextEl.textContent = dontTapMode ? "DON'T TAP!" : 'TAP!';
+  if (dontTapMode) {
+    tapTextEl.innerHTML = `<span class="dont-label">DON'T</span><span>TAP!</span>`;
+  } else {
+    tapTextEl.textContent = 'TAP!';
+  }
   tapTextEl.classList.toggle('dont-tap', dontTapMode);
   show('tap');
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
-      startReactionTone(dontTapMode ? 50 : 780);
+      if (!dontTapMode) startReactionTone(780);
       slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, 1500);
     });
   });
@@ -1029,7 +1036,6 @@ function soloResult(avg) {
   gradeEl.textContent = `${g.emoji} ${g.label}`;
 
   document.getElementById('statBest').textContent = best + 'ms';
-  document.querySelector('#result .result-unit[style]').textContent = `avg of ${TAPS_PER_SET} taps`;
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
 }
@@ -1098,7 +1104,6 @@ function challengeResult(avg) {
     }
   }
 
-  document.querySelector('#chalRound .round-unit[style]').textContent = `avg of ${TAPS_PER_SET} taps`;
   show('chalRound');
 }
 
