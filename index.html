@@ -452,7 +452,7 @@
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
     <div class="bgm-toggle" id="bgmToggle"></div>
   </div>
-  <div class="version-footer">v1.0.032</div>
+  <div class="version-footer">v1.0.034</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -802,13 +802,11 @@ let TAPS_PER_SET = 6;
 let setTaps   = []; // reaction times (ms) collected so far in the current set
 let setTapNum = 0;  // number of successful taps completed so far
 
-// Don't-tap mode: 30% chance per tap screen, guaranteed once per set, caps at 5.
-// tapGuaranteedSlot: one of taps 2-5 (index 1-4) is always forced to be TAP!
-let dontTapMode           = false;
-let dontTapCount          = 0;
-let dontTapOccurred       = false;
-let dontTapGuaranteedSlot = 0;
-let tapGuaranteedSlot     = 0;
+// Don't-tap mode: pre-shuffled sequence per set.
+// tapSequence[i] = true means tap i is a "don't tap" screen.
+// Constraints: at least one TAP! and at least one DON'T TAP!, probability ~49% don't-tap.
+let dontTapMode = false;
+let tapSequence = [];
 
 // Challenge (2P) state — reset when a new challenge match begins (btnBegin) or on rematch.
 // chalRound:        0-based index of the current round (max 2 for best-of-3).
@@ -908,15 +906,28 @@ function showGetReady() {
 }
 
 function randomizeTapsPerSet() {
-  TAPS_PER_SET          = Math.random() < 0.5 ? 6 : 7;
-  setTaps               = [];
-  setTapNum             = 0;
-  dontTapCount          = 0;
-  dontTapOccurred       = false;
-  tapGuaranteedSlot     = 1 + Math.floor(Math.random() * 4); // index 1–4 (taps 2–5)
-  let dgt;
-  do { dgt = 1 + Math.floor(Math.random() * (TAPS_PER_SET - 1)); } while (dgt === tapGuaranteedSlot);
-  dontTapGuaranteedSlot = dgt; // index 1+, never same slot as tapGuaranteedSlot
+  TAPS_PER_SET = Math.random() < 0.5 ? 6 : 7;
+  setTaps      = [];
+  setTapNum    = 0;
+
+  // Build a sequence of booleans (true = don't tap) for all TAPS_PER_SET slots.
+  // Each slot independently has a 49% chance of being "don't tap", but we
+  // enforce at least one TAP! and at least one DON'T TAP! per set.
+  // Uses crypto.getRandomValues for better entropy.
+  const buf = new Uint32Array(TAPS_PER_SET);
+  crypto.getRandomValues(buf);
+  tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.50);
+
+  // Guarantee at least one TAP! — if all are don't-tap, flip a random one.
+  if (tapSequence.every(v => v)) {
+    const i = Math.floor((buf[0] / 0x100000000) * TAPS_PER_SET);
+    tapSequence[i] = false;
+  }
+  // Guarantee at least one DON'T TAP! — if none exist, flip a random one.
+  if (tapSequence.every(v => !v)) {
+    const i = Math.floor((buf[1] / 0x100000000) * TAPS_PER_SET);
+    tapSequence[i] = true;
+  }
 }
 
 function startWait() {
@@ -998,10 +1009,7 @@ function resolveDontTap() {
 // Double-rAF ensures tapStartTime is set only after the browser has fully painted the
 // green tap screen. First rAF = style/layout flush, second rAF = paint committed.
 function showTap() {
-  const atGuaranteedSlot = !dontTapOccurred && setTapNum === dontTapGuaranteedSlot;
-  const atTapSlot        = setTapNum === tapGuaranteedSlot;
-  dontTapMode = setTapNum > 0 && !atTapSlot && dontTapCount < 5 && (atGuaranteedSlot || Math.random() < 0.40);
-  if (dontTapMode) { dontTapCount++; dontTapOccurred = true; }
+  dontTapMode = tapSequence[setTapNum] === true;
   const tapTextEl = document.getElementById('tapText');
   if (dontTapMode) {
     tapTextEl.innerHTML = `<span class="dont-label">DON'T</span><span>TAP!</span>`;
