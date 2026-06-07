@@ -424,7 +424,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.008</div>
+  <div class="version-footer">v1.0.009</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -543,11 +543,18 @@
 </div>
 
 <script>
-// ── SOUND ENGINE ──
+// ═══════════════════════════════════════════════════════════
+// SOUND ENGINE
+// All audio is synthesized via Web Audio API — no audio files.
+// Entry point: playTone(freq, type, duration, gain, startTime, rampDown)
+// High-level helpers: soundCountdownBeep, soundEarly, soundSlow,
+//   soundGoodResult, soundBadResult, startReactionTone, stopReactionTone.
+// ═══════════════════════════════════════════════════════════
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
 let audioUnlocked = false;
 
+// Lazily creates and resumes the shared AudioContext.
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new AudioCtx();
   if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -577,6 +584,8 @@ function unlockAudio() {
 ['touchend', 'pointerdown', 'click'].forEach(ev =>
   document.addEventListener(ev, unlockAudio, { passive: true }));
 
+// Core oscillator helper. startTime is ctx.currentTime (or offset from it for chained tones).
+// rampDown=false leaves the tone at full gain — only used by the continuous reaction tone.
 function playTone(freq, type, duration, gainVal, startTime, rampDown = true) {
   const ctx  = getAudioCtx();
   const osc  = ctx.createOscillator();
@@ -624,6 +633,8 @@ function soundBadResult() {
 }
 
 // ── REACTION TONE ──
+// A continuous 880 Hz sine tone plays while the tap screen is visible — gives the player
+// an audio cue alongside the visual. Stopped immediately on tap or triggerSlow.
 let reactionOsc  = null;
 let reactionGain = null;
 
@@ -649,7 +660,10 @@ function stopReactionTone() {
 }
 
 
-// ── GRADES (15, ordered best → worst) ──
+// ── GRADES ──
+// 15 tiers ordered best → worst. getGrade(ms) returns the first entry whose max > ms.
+// cls maps to a CSS class (grade-s through grade-f) for color theming.
+// To add/adjust tiers: insert a new entry in ascending max order; update CSS grade-* if adding a new cls.
 const GRADES = [
   { max: 200,  emoji: '🤖', label: 'CYBORG',             cls: 'grade-s' },
   { max: 210,  emoji: '🏎️', label: 'F1 DRIVER',           cls: 'grade-s' },
@@ -673,6 +687,10 @@ function getGrade(ms) {
 }
 
 // ── SCREENS ──
+// All UI state is driven by toggling .hidden on .screen divs. The score bar (#chalScoreBar)
+// is NOT in this list — it sits outside the screen system and is toggled via showScoreBar().
+// To add a new screen: add its HTML id here, add a <div class="screen hidden" id="..."> in HTML,
+// then call show('yourId') to navigate to it.
 const allScreens = ['home','countdown','getReady','wait','tap','early','slow','result','chalSetup','chalRound','chalFinal'];
 const scrEls = {};
 allScreens.forEach(id => scrEls[id] = document.getElementById(id));
@@ -682,37 +700,49 @@ function show(name) {
 }
 
 // ── PERSISTENT STATE ──
+// rfx_hist: last 20 solo set-averages (ms). Used to compute all-time best on home screen.
+// rfx_streak: consecutive non-failing solo sets. Persisted but not currently displayed in UI.
 let history = JSON.parse(localStorage.getItem('rfx_hist') || '[]');
 let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
 
 // ── GAME STATE ──
+// tapStartTime: performance.now() snapshot when green tap screen is painted (set in showTap via double-rAF).
+//               0 means the tap screen is not active — used as a guard in handleTap.
+// waitTimeout:  setTimeout handle for the random wait-to-green delay. Cleared on early tap.
+// slowTimeout:  setTimeout handle for the 1500ms too-slow cutoff. Cleared on successful tap.
+// mode:         'solo' or 'challenge' — controls which result flow runs after a set.
 let tapStartTime = 0;
 let waitTimeout  = null;
 let slowTimeout  = null;
 let mode = 'solo'; // 'solo' | 'challenge'
 
-// Set state — taps per set randomized to 6 or 7 at the start of each set
+// Set state — randomized to 6 or 7 taps per set, chosen fresh at startCountdown.
 let TAPS_PER_SET = 6;
-let setTaps = [];   // tap times collected so far in current set
-let setTapNum = 0;  // how many taps done so far
+let setTaps   = []; // reaction times (ms) collected so far in the current set
+let setTapNum = 0;  // number of successful taps completed so far
 
-// Challenge state
-let chalPlayers = ['Player 1', 'Player 2'];
-let chalScores  = [0, 0];       // wins per player
-let chalTimes   = [[], []];     // average times per round per player
-let chalRound   = 0;            // 0-based round index (0,1,2)
-let chalTurn    = 0;            // which player's turn (0 or 1)
-let chalRoundResults = [];      // {player, avg} for current round (both players)
+// Challenge (2P) state — reset when a new challenge match begins (btnBegin) or on rematch.
+// chalRound:        0-based index of the current round (max 2 for best-of-3).
+// chalTurn:         index into chalPlayers of whose turn it currently is (0 or 1).
+// chalRoundResults: [{player, avg}] for the current round; cleared after both players finish.
+let chalPlayers      = ['Player 1', 'Player 2'];
+let chalScores       = [0, 0];   // round wins per player
+let chalTimes        = [[], []]; // per-player array of set-average times, one entry per round
+let chalRound        = 0;
+let chalTurn         = 0;
+let chalRoundResults = [];
 
 const scoreBar = document.getElementById('chalScoreBar');
 
 // ── UTILS ──
+// Refreshes the home screen "Best Xms" line from history array.
 function updateBestDisplay() {
   const best = history.length ? Math.min(...history) : null;
   const el = document.getElementById('bestDisplay');
   el.innerHTML = best ? `Best <span>${best}ms</span>` : 'Best — — —';
 }
 
+// Removes all grade-* classes, applies the correct one for ms, returns the grade object.
 function applyGradeStyle(el, ms) {
   const g = getGrade(ms);
   el.classList.remove('grade-s', 'grade-a', 'grade-b', 'grade-c', 'grade-d', 'grade-f');
@@ -720,6 +750,7 @@ function applyGradeStyle(el, ms) {
   return g;
 }
 
+// Returns a CSS color variable for the numeric result display based on reaction time.
 function timeColor(ms) {
   if (ms < 200) return 'var(--green)';
   if (ms < 260) return 'var(--blue)';
@@ -729,6 +760,9 @@ function timeColor(ms) {
 }
 
 // ── SCORE BAR ──
+// Fixed-position bar shown at top during challenge rounds. Displays player names and pip wins.
+// active-player class dims a half to a neutral white — applied to the INACTIVE player's half
+// so the active player's colored half stands out.
 function updateScoreBar() {
   document.getElementById('sbName1').textContent = chalPlayers[0];
   document.getElementById('sbName2').textContent = chalPlayers[1];
@@ -741,7 +775,7 @@ function updateScoreBar() {
       pipsEl.appendChild(d);
     }
   });
-  // highlight active player
+  // Dim the inactive player's half (chalTurn 0 = P1 active → dim P2, and vice versa).
   document.getElementById('scoreBarP1').classList.toggle('active-player', chalTurn !== 0 || mode !== 'challenge');
   document.getElementById('scoreBarP2').classList.toggle('active-player', chalTurn !== 1 || mode !== 'challenge');
 }
@@ -751,6 +785,10 @@ function showScoreBar(visible) {
 }
 
 // ── COUNTDOWN ──
+// Entry point for every game flow. context is a string shown above the number
+// (e.g. "Round 2 · Alice" in challenge mode, '' for solo).
+// Also calls randomizeTapsPerSet() so TAPS_PER_SET is fresh for each set.
+// Flow after countdown: showGetReady → startWait → showTap → handleTap → result
 function startCountdown(context) {
   randomizeTapsPerSet();
   show('countdown');
@@ -764,7 +802,7 @@ function startCountdown(context) {
     if (n > 0) {
       numEl.textContent = n;
       numEl.style.animation = 'none';
-      void numEl.offsetWidth;
+      void numEl.offsetWidth; // force reflow to restart the pulse animation each tick
       numEl.style.animation = '';
       soundCountdownBeep(false);
     } else {
@@ -800,13 +838,14 @@ function startWait() {
 }
 
 // ── WAIT → EARLY ──
+// Any touch/click during the red wait screen is an early tap — cancels the whole set.
+// waitTimeout being non-null means the countdown to green is still pending.
 scrEls.wait.addEventListener('pointerdown', e => {
   e.preventDefault();
-  if (!waitTimeout) return;
+  if (!waitTimeout) return; // race: showTap already fired, let handleTap take it
   clearTimeout(waitTimeout);
   waitTimeout = null;
-  // Reset the current set — early tap loses the whole set
-  setTaps   = [];
+  setTaps   = []; // discard any partial-set taps (early mid-set resets everything)
   setTapNum = 0;
   soundEarly();
   if (mode === 'solo') {
@@ -820,8 +859,8 @@ scrEls.wait.addEventListener('pointerdown', e => {
 });
 
 // ── SHOW TAP ──
-// Start the clock only after the green screen has actually been painted.
-// Two nested rAFs: first rAF = layout/style flush, second rAF = paint complete.
+// triggerSlow fires via setTimeout after 1500ms on the tap screen — too-slow penalty.
+// It zeros tapStartTime so the early-return guard in handleTap catches any late taps.
 function triggerSlow() {
   if (!tapStartTime) return; // already tapped
   tapStartTime = 0;
@@ -839,6 +878,8 @@ function triggerSlow() {
   show('slow');
 }
 
+// Double-rAF ensures tapStartTime is set only after the browser has fully painted the
+// green tap screen. First rAF = style/layout flush, second rAF = paint committed.
 function showTap() {
   show('tap');
   requestAnimationFrame(() => {
@@ -856,29 +897,17 @@ function showTap() {
 // touchstart calls preventDefault to stop the synthetic mousedown
 // that would otherwise double-fire on mobile.
 
+// handleTap: fires on touchstart (iOS) or mousedown (desktop) while the tap screen is visible.
+// tapStartTime guards against firing before the double-rAF paint commit in showTap.
+// The >1500ms path is handled earlier by triggerSlow's setTimeout, so we never reach it here
+// — by then tapStartTime has been zeroed and the guard above already returned.
 function handleTap(e) {
-  if (!tapStartTime) return; // guard: fired before paint completed
+  if (!tapStartTime) return; // guard: fired before paint committed, or after triggerSlow ran
   clearTimeout(slowTimeout);
   slowTimeout = null;
   stopReactionTone();
   const ms = Math.round(performance.now() - tapStartTime);
-  tapStartTime = 0; // prevent double-fire
-
-  // >1500ms = failure — same consequence as early tap
-  if (ms > 1500) {
-    setTaps   = [];
-    setTapNum = 0;
-    soundSlow();
-    if (mode === 'solo') {
-      streak = 0;
-      localStorage.setItem('rfx_streak', streak);
-    } else {
-      chalScores[1 - chalTurn]++;
-      updateScoreBar();
-    }
-    show('slow');
-    return;
-  }
+  tapStartTime = 0; // zero before any show() call to prevent double-fire
 
   setTaps.push(ms);
   setTapNum++;
@@ -904,7 +933,8 @@ scrEls.tap.addEventListener('touchstart', e => {
 scrEls.tap.addEventListener('mousedown', handleTap);
 
 // ── SOLO RESULT ──
-// avg = average of the 3 taps in the set
+// avg = mean of all TAPS_PER_SET tap times in the completed set (6 or 7 taps).
+// Adds to history (capped at 20), increments streak, shows the result screen.
 function soloResult(avg) {
   history.push(avg);
   if (history.length > 20) history = history.slice(-20);
@@ -934,7 +964,10 @@ function soloResult(avg) {
 }
 
 // ── CHALLENGE RESULT ──
-// avg = average of the 3 taps in the set
+// avg = mean of all TAPS_PER_SET tap times for the current player's set.
+// Called once per player per round. First call shows the per-player result and prompts
+// phone pass; second call compares both and records the round winner.
+// Match is best-of-3 rounds (first to 2 round wins, or whoever leads after 3 rounds).
 function challengeResult(avg) {
   chalRoundResults.push({ player: chalTurn, avg });
   chalTimes[chalTurn].push(avg);
@@ -999,19 +1032,21 @@ function challengeResult(avg) {
 }
 
 // ── NEXT ROUND BTN ──
+// dataset.next is set by challengeResult: 'final' when match is over, 'round' for next round,
+// or '' (mid-round) when the first player just finished and we're passing to the second.
 document.getElementById('btnNextRound').addEventListener('click', () => {
   const next = document.getElementById('btnNextRound').dataset.next;
   if (next === 'final') {
     showFinal();
-  } else if (next === 'round') {
-    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
   } else {
-    // pass phone to next player mid-round
+    // 'round' (start next round) or '' (pass phone mid-round) — same action
     startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
   }
 });
 
 // ── FINAL ──
+// Displays the match winner, score breakdown, and per-player best-round averages.
+// chalTimes[p] is an array of that player's set-average from each round they played.
 function showFinal() {
   showScoreBar(false);
   const w0 = chalScores[0], w1 = chalScores[1];
@@ -1053,7 +1088,10 @@ function showFinal() {
   show('chalFinal');
 }
 
-// ── HOME BUTTONS ──
+// ── BUTTON HANDLERS ──
+// btnStart → solo flow; btnChallenge → setup screen; btnBegin → initialises challenge state
+// and starts round 1. btnRematch → resets scores but keeps player names.
+// goHome → shared handler for slow/early back buttons (resets partial set state).
 document.getElementById('btnStart').addEventListener('click', () => {
   mode = 'solo';
   showScoreBar(false);
