@@ -3,7 +3,9 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 **Do not edit or update this file unless the user explicitly asks you to update CLAUDE.md.**
-**Read README.md** as the first step if you have no other context
+**Read README.md as the first step if you have no other context**
+**at the end of changes you ask if you want the version number updated and suggest an new number**
+
 
 ## Project Overview
 
