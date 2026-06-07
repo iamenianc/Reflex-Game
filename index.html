@@ -77,6 +77,96 @@
   }
   .best-display span { color: var(--amber); }
 
+  /* ── TAG MODAL ── */
+  .tag-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 100;
+  }
+  .tag-modal-overlay.hidden { display: none; }
+  .tag-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 10vw, 56px);
+    letter-spacing: 0.12em;
+    color: var(--white);
+  }
+  .tag-modal-sub {
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    text-align: center;
+    padding: 0 32px;
+  }
+  .tag-input {
+    background: var(--surface);
+    border: 1px solid var(--muted);
+    color: var(--white);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 0.3em;
+    padding: 14px 20px;
+    border-radius: 4px;
+    outline: none;
+    text-align: center;
+    width: 220px;
+    text-transform: uppercase;
+  }
+  .tag-input:focus { border-color: var(--white); }
+  .tag-error {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--red);
+    text-transform: uppercase;
+    min-height: 16px;
+  }
+  .btn-tag-confirm {
+    background: var(--green);
+    color: #000;
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.15em;
+    padding: 14px 52px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: transform 0.1s;
+  }
+  .btn-tag-confirm:active { transform: scale(0.96); }
+
+  /* ── LEADERBOARD ── */
+  .leaderboard {
+    margin-top: 4px;
+    width: 260px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+  .lb-title {
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .lb-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .lb-row.lb-you { color: var(--amber); }
+  .lb-rank { width: 20px; color: var(--muted); }
+  .lb-tag  { flex: 1; }
+  .lb-ms   { color: var(--white); }
+
   .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .version-footer { position: absolute; bottom: 18px; width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
   .btn-solo {
@@ -450,6 +540,15 @@
   </div>
 </div>
 
+<!-- TAG MODAL -->
+<div class="tag-modal-overlay hidden" id="tagModal">
+  <div class="tag-modal-title">WHO ARE YOU?</div>
+  <div class="tag-modal-sub">Pick a 5-letter tag.<br>This appears on the global leaderboard.</div>
+  <input class="tag-input" id="tagInput" type="text" maxlength="5" placeholder="ABCDE" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+  <div class="tag-error" id="tagError"></div>
+  <button class="btn-tag-confirm" id="btnTagConfirm">CONFIRM</button>
+</div>
+
 <!-- HOME -->
 <div class="screen" id="home">
   <div class="title-block">
@@ -461,6 +560,10 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
     <div class="bgm-toggle" id="bgmToggle"></div>
+  </div>
+  <div class="leaderboard" id="leaderboard">
+    <div class="lb-title">Global Best</div>
+    <div id="lbRows"></div>
   </div>
   <div class="version-footer">v1.0.035</div>
 </div>
@@ -742,7 +845,7 @@ const GRADES = [
   { max: 302,      emoji: '🗡️', label: 'KATANA BLADE',         cls: 'grade-s' },
   { max: 315,      emoji: '🥷', label: 'SHADOW NINJA',         cls: 'grade-s' },
 
-  // A-Tier: Good / Above Average Performance (315ms to 325ms)
+  // A-Tier: Good / Above Average Performance (315ms to 380ms)
   { max: 325,      emoji: '🎮', label: 'PRO GAMER',            cls: 'grade-a' },
   { max: 334,      emoji: '🦅', label: 'EAGLE-EYED',           cls: 'grade-a' },
   { max: 343,      emoji: '🐆', label: 'CHETAH SPEED',         cls: 'grade-a' },
@@ -751,29 +854,29 @@ const GRADES = [
   { max: 370,      emoji: '☕', label: 'HOT COFFEE',           cls: 'grade-a' },
   { max: 380,      emoji: '🧨', label: 'FIRECRACKER',          cls: 'grade-a' },
 
-  // B-Tier: Average Population / Steady Control (325ms to 433ms)
-  { max: 343,      emoji: '🦘', label: 'KANGAROO',             cls: 'grade-b' },
-  { max: 361,      emoji: '🐕', label: 'LABRADOR',             cls: 'grade-b' },
-  { max: 379,      emoji: '🐿️', label: 'SQUIRREL',             cls: 'grade-b' },
-  { max: 397,      emoji: '🦫', label: 'BEAVER',               cls: 'grade-b' },
-  { max: 415,      emoji: '🦡', label: 'BADGER',               cls: 'grade-b' },
-  { max: 433,      emoji: '🦉', label: 'OWL',                  cls: 'grade-b' },
+  // B-Tier: Average Population / Steady Control (380ms to 425ms)
+  { max: 388,      emoji: '🦘', label: 'KANGAROO',             cls: 'grade-b' },
+  { max: 396,      emoji: '🐕', label: 'LABRADOR',             cls: 'grade-b' },
+  { max: 404,      emoji: '🐿️', label: 'SQUIRREL',             cls: 'grade-b' },
+  { max: 412,      emoji: '🦫', label: 'BEAVER',               cls: 'grade-b' },
+  { max: 420,      emoji: '🦡', label: 'BADGER',               cls: 'grade-b' },
+  { max: 425,      emoji: '🦉', label: 'OWL',                  cls: 'grade-b' },
 
-  // C-Tier: Mild Lag / Slightly Fatigued (433ms to 542ms)
-  { max: 455,      emoji: '🦥', label: 'SLOTH',                cls: 'grade-c' },
-  { max: 477,      emoji: '🐨', label: 'KOALA',                cls: 'grade-c' },
-  { max: 499,      emoji: '🐼', label: 'PANDA',                cls: 'grade-c' },
-  { max: 521,      emoji: '🐸', label: 'TOAD',                 cls: 'grade-c' },
-  { max: 542,      emoji: '🐌', label: 'SNAIL',                cls: 'grade-c' },
+  // C-Tier: Mild Lag / Slightly Fatigued (425ms to 470ms)
+  { max: 433,      emoji: '🦥', label: 'SLOTH',                cls: 'grade-c' },
+  { max: 442,      emoji: '🐨', label: 'KOALA',                cls: 'grade-c' },
+  { max: 452,      emoji: '🐼', label: 'PANDA',                cls: 'grade-c' },
+  { max: 462,      emoji: '🐸', label: 'TOAD',                 cls: 'grade-c' },
+  { max: 470,      emoji: '🐌', label: 'SNAIL',                cls: 'grade-c' },
 
-  // D-Tier: Substantial Delay / Heavy Processing (542ms to 650ms)
-  { max: 569,      emoji: '🦕', label: 'FOSSIL REFLEXES',      cls: 'grade-d' },
-  { max: 596,      emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
-  { max: 623,      emoji: '🧓', label: 'DIAL-UP CONNECTION',   cls: 'grade-d' },
-  { max: 650,      emoji: '🧱', label: 'MOLASSES REACTION',    cls: 'grade-d' },
+  // D-Tier: Substantial Delay / Heavy Processing (470ms to 520ms)
+  { max: 480,      emoji: '🦕', label: 'FOSSIL REFLEXES',      cls: 'grade-d' },
+  { max: 492,      emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
+  { max: 505,      emoji: '🧓', label: 'DIAL-UP CONNECTION',   cls: 'grade-d' },
+  { max: 520,      emoji: '🧱', label: 'MOLASSES REACTION',    cls: 'grade-d' },
 
-  // F-Tier: Severely Delayed (Over 650ms)
-  { max: 750,      emoji: '🐢', label: 'GEOLOGICAL EPOCH',     cls: 'grade-f' },
+  // F-Tier: Severely Delayed (Over 520ms)
+  { max: 550,      emoji: '🐢', label: 'GEOLOGICAL EPOCH',     cls: 'grade-f' },
   { max: Infinity, emoji: '🌌', label: 'HEAT DEATH OF UNIVERSE', cls: 'grade-f' },
 ];
 
@@ -1139,6 +1242,7 @@ function soloResult(avg, taps) {
   document.getElementById('statBest').textContent = best + 'ms';
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
+  submitScore(avg);
 }
 
 // ── CHALLENGE RESULT ──
@@ -1321,7 +1425,7 @@ document.getElementById('btnRetry').addEventListener('click', () => {
 });
 
 document.getElementById('btnHome').addEventListener('click', () => {
-  showScoreBar(false); updateBestDisplay(); show('home');
+  showScoreBar(false); updateBestDisplay(); show('home'); loadLeaderboard();
 });
 
 function goHome() {
@@ -1329,6 +1433,7 @@ function goHome() {
   showScoreBar(false);
   updateBestDisplay();
   show('home');
+  loadLeaderboard();
 }
 
 document.getElementById('btnSlowContinue').addEventListener('click', goHome);
@@ -1347,21 +1452,105 @@ document.getElementById('btnRematch').addEventListener('click', () => {
 });
 
 document.getElementById('btnFinalHome').addEventListener('click', () => {
-  showScoreBar(false); updateBestDisplay(); show('home');
+  showScoreBar(false); updateBestDisplay(); show('home'); loadLeaderboard();
 });
 
 // ── BLOCK ALL KEYBOARD INPUT ──
 // Buttons respond to Space/Enter natively; prevent that at capture phase.
-// Allow normal typing in the player-name input fields only.
+// Allow normal typing in INPUT elements only (tag modal + player name inputs).
 function blockKeyboard(e) {
   if (e.target.tagName !== 'INPUT') e.preventDefault();
 }
 document.addEventListener('keydown', blockKeyboard, { capture: true });
 document.addEventListener('keyup',   blockKeyboard, { capture: true });
 
+// ── LEADERBOARD / TAG ──
+const WORKER_URL = 'https://reflex-scores.reflex-game.workers.dev';
+let playerTag = localStorage.getItem('rfx_tag') || '';
+
+function isValidTag(t) { return /^[A-Z]{5}$/.test(t); }
+
+function showTagModal() {
+  document.getElementById('tagModal').classList.remove('hidden');
+  document.getElementById('tagInput').focus();
+}
+
+function hideTagModal() {
+  document.getElementById('tagModal').classList.add('hidden');
+}
+
+const tagInput = document.getElementById('tagInput');
+const tagError = document.getElementById('tagError');
+
+tagInput.addEventListener('input', () => {
+  tagInput.value = tagInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 5);
+  tagError.textContent = '';
+});
+
+tagInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmTag();
+});
+
+document.getElementById('btnTagConfirm').addEventListener('click', confirmTag);
+
+function confirmTag() {
+  const val = tagInput.value.trim().toUpperCase();
+  if (!isValidTag(val)) {
+    tagError.textContent = 'Exactly 5 letters A–Z only';
+    return;
+  }
+  playerTag = val;
+  localStorage.setItem('rfx_tag', val);
+  hideTagModal();
+  loadLeaderboard();
+}
+
+async function submitScore(ms) {
+  if (!isValidTag(playerTag)) return;
+  try {
+    await fetch(`${WORKER_URL}/score`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tag: playerTag, ms })
+    });
+  } catch (_) {}
+}
+
+async function loadLeaderboard() {
+  try {
+    const res  = await fetch(`${WORKER_URL}/scores`);
+    const data = await res.json();
+    renderLeaderboard(data);
+  } catch (_) {
+    document.getElementById('lbRows').innerHTML =
+      '<div style="font-size:10px;color:var(--muted);text-align:center;padding:6px 0">unavailable</div>';
+  }
+}
+
+function renderLeaderboard(entries) {
+  const el = document.getElementById('lbRows');
+  if (!entries || !entries.length) {
+    el.innerHTML = '<div style="font-size:10px;color:var(--muted);text-align:center;padding:6px 0">no scores yet</div>';
+    return;
+  }
+  el.innerHTML = entries.map((e, i) => {
+    const isYou = e.tag === playerTag;
+    return `<div class="lb-row${isYou ? ' lb-you' : ''}">
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-tag">${e.tag}</span>
+      <span class="lb-ms">${e.ms}ms</span>
+    </div>`;
+  }).join('');
+}
+
 // ── INIT ──
 updateBestDisplay();
 show('home');
+if (!isValidTag(playerTag)) {
+  showTagModal();
+} else {
+  loadLeaderboard();
+}
 
 // ── PWA BOOTSTRAP ──
 // Generates a manifest and service worker entirely from JS blobs so the
