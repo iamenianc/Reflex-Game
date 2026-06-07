@@ -580,7 +580,7 @@
     <div class="lb-title">Global Best</div>
     <div id="lbRows"></div>
   </div>
-  <div class="version-footer">v1.0.040</div>
+  <div class="version-footer">v1.0.041</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -1258,17 +1258,14 @@ function soloResult(avg, taps) {
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
 
-  // Refresh the board, then ask for a tag (or submit) only if this run would
-  // actually place on the global leaderboard.
+  // Refresh the board, then — if this run would place on the global board —
+  // always ask for a tag. The tag is never silently reused: every qualifying
+  // run prompts (the previous tag is pre-filled for convenience).
   (async () => {
     await loadLeaderboard();
     if (!qualifies(avg)) return;
-    if (isValidTag(playerTag)) {
-      submitScore(avg);
-    } else {
-      pendingScore = avg;
-      showTagModal();
-    }
+    pendingScore = avg;
+    showTagModal();
   })();
 }
 
@@ -1505,7 +1502,14 @@ function isValidTag(t) { return /^[A-Z]{1,6}$/.test(t); }
 
 function showTagModal() {
   document.getElementById('tagModal').classList.remove('hidden');
-  document.getElementById('tagInput').focus();
+  // Pre-fill the previous tag for convenience, but the player must still
+  // confirm it each run — it is never submitted without showing this prompt.
+  tagInput.value = playerTag || '';
+  tagError.textContent = '';
+  warnedTag = null;
+  const inp = document.getElementById('tagInput');
+  inp.focus();
+  inp.select();
 }
 
 function hideTagModal() {
