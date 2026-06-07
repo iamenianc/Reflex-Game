@@ -411,6 +411,16 @@
   }
   .btn-rematch:active { transform: scale(0.96); }
 
+  .tap-breakdown {
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-align: center;
+    margin-bottom: 16px;
+    font-family: 'DM Mono', monospace;
+  }
+  .tap-breakdown span { color: var(--white); }
+
   .bgm-toggle {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 18px;
@@ -452,7 +462,7 @@
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
     <div class="bgm-toggle" id="bgmToggle"></div>
   </div>
-  <div class="version-footer">v1.0.034</div>
+  <div class="version-footer">v1.0.035</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -501,6 +511,7 @@
   <div class="result-label">Your time</div>
   <div class="result-time" id="resultTime">000</div>
   <div class="result-unit">milliseconds avg</div>
+  <div class="tap-breakdown" id="resultBreakdown"></div>
   <div class="grade-caption" id="resultCaption">your reflex rating is</div>
   <div class="result-grade" id="resultGrade"></div>
   <div class="stats-row">
@@ -535,6 +546,7 @@
   <div class="round-player-name" id="crPlayerName"></div>
   <div class="round-time" id="crTime">000</div>
   <div class="round-unit">milliseconds avg</div>
+  <div class="tap-breakdown" id="crBreakdown"></div>
   <div class="grade-caption">your reflex rating is</div>
   <div class="round-grade" id="crGrade"></div>
   <div class="round-winner-tag hidden" id="crWinnerTag"></div>
@@ -553,12 +565,14 @@
       <div class="fsc-name p1" id="fcName1">P1</div>
       <div class="fsc-best p1" id="fcBest1">—</div>
       <div class="fsc-sub">Avg</div>
+      <div class="tap-breakdown" id="fcBreakdown1"></div>
       <div class="fsc-wins" id="fcWins1"></div>
     </div>
     <div class="final-score-card">
       <div class="fsc-name p2" id="fcName2">P2</div>
       <div class="fsc-best p2" id="fcBest2">—</div>
       <div class="fsc-sub">Avg</div>
+      <div class="tap-breakdown" id="fcBreakdown2"></div>
       <div class="fsc-wins" id="fcWins2"></div>
     </div>
   </div>
@@ -728,7 +742,7 @@ const GRADES = [
   { max: 302,      emoji: '🗡️', label: 'KATANA BLADE',         cls: 'grade-s' },
   { max: 315,      emoji: '🥷', label: 'SHADOW NINJA',         cls: 'grade-s' },
 
-  // A-Tier: Good / Above Average Performance (315ms to 380ms)
+  // A-Tier: Good / Above Average Performance (315ms to 325ms)
   { max: 325,      emoji: '🎮', label: 'PRO GAMER',            cls: 'grade-a' },
   { max: 334,      emoji: '🦅', label: 'EAGLE-EYED',           cls: 'grade-a' },
   { max: 343,      emoji: '🐆', label: 'CHETAH SPEED',         cls: 'grade-a' },
@@ -737,29 +751,29 @@ const GRADES = [
   { max: 370,      emoji: '☕', label: 'HOT COFFEE',           cls: 'grade-a' },
   { max: 380,      emoji: '🧨', label: 'FIRECRACKER',          cls: 'grade-a' },
 
-  // B-Tier: Average Population / Steady Control (380ms to 425ms)
-  { max: 388,      emoji: '🦘', label: 'KANGAROO',             cls: 'grade-b' },
-  { max: 396,      emoji: '🐕', label: 'LABRADOR',             cls: 'grade-b' },
-  { max: 404,      emoji: '🐿️', label: 'SQUIRREL',             cls: 'grade-b' },
-  { max: 412,      emoji: '🦫', label: 'BEAVER',               cls: 'grade-b' },
-  { max: 420,      emoji: '🦡', label: 'BADGER',               cls: 'grade-b' },
-  { max: 425,      emoji: '🦉', label: 'OWL',                  cls: 'grade-b' },
+  // B-Tier: Average Population / Steady Control (325ms to 433ms)
+  { max: 343,      emoji: '🦘', label: 'KANGAROO',             cls: 'grade-b' },
+  { max: 361,      emoji: '🐕', label: 'LABRADOR',             cls: 'grade-b' },
+  { max: 379,      emoji: '🐿️', label: 'SQUIRREL',             cls: 'grade-b' },
+  { max: 397,      emoji: '🦫', label: 'BEAVER',               cls: 'grade-b' },
+  { max: 415,      emoji: '🦡', label: 'BADGER',               cls: 'grade-b' },
+  { max: 433,      emoji: '🦉', label: 'OWL',                  cls: 'grade-b' },
 
-  // C-Tier: Mild Lag / Slightly Fatigued (425ms to 470ms)
-  { max: 433,      emoji: '🦥', label: 'SLOTH',                cls: 'grade-c' },
-  { max: 442,      emoji: '🐨', label: 'KOALA',                cls: 'grade-c' },
-  { max: 452,      emoji: '🐼', label: 'PANDA',                cls: 'grade-c' },
-  { max: 462,      emoji: '🐸', label: 'TOAD',                 cls: 'grade-c' },
-  { max: 470,      emoji: '🐌', label: 'SNAIL',                cls: 'grade-c' },
+  // C-Tier: Mild Lag / Slightly Fatigued (433ms to 542ms)
+  { max: 455,      emoji: '🦥', label: 'SLOTH',                cls: 'grade-c' },
+  { max: 477,      emoji: '🐨', label: 'KOALA',                cls: 'grade-c' },
+  { max: 499,      emoji: '🐼', label: 'PANDA',                cls: 'grade-c' },
+  { max: 521,      emoji: '🐸', label: 'TOAD',                 cls: 'grade-c' },
+  { max: 542,      emoji: '🐌', label: 'SNAIL',                cls: 'grade-c' },
 
-  // D-Tier: Substantial Delay / Heavy Processing (470ms to 520ms)
-  { max: 480,      emoji: '🦕', label: 'FOSSIL REFLEXES',      cls: 'grade-d' },
-  { max: 492,      emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
-  { max: 505,      emoji: '🧓', label: 'DIAL-UP CONNECTION',   cls: 'grade-d' },
-  { max: 520,      emoji: '🧱', label: 'MOLASSES REACTION',    cls: 'grade-d' },
+  // D-Tier: Substantial Delay / Heavy Processing (542ms to 650ms)
+  { max: 569,      emoji: '🦕', label: 'FOSSIL REFLEXES',      cls: 'grade-d' },
+  { max: 596,      emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
+  { max: 623,      emoji: '🧓', label: 'DIAL-UP CONNECTION',   cls: 'grade-d' },
+  { max: 650,      emoji: '🧱', label: 'MOLASSES REACTION',    cls: 'grade-d' },
 
-  // F-Tier: Severely Delayed (Over 520ms)
-  { max: 550,      emoji: '🐢', label: 'GEOLOGICAL EPOCH',     cls: 'grade-f' },
+  // F-Tier: Severely Delayed (Over 650ms)
+  { max: 750,      emoji: '🐢', label: 'GEOLOGICAL EPOCH',     cls: 'grade-f' },
   { max: Infinity, emoji: '🌌', label: 'HEAT DEATH OF UNIVERSE', cls: 'grade-f' },
 ];
 
@@ -916,7 +930,7 @@ function randomizeTapsPerSet() {
   // Uses crypto.getRandomValues for better entropy.
   const buf = new Uint32Array(TAPS_PER_SET);
   crypto.getRandomValues(buf);
-  tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.50);
+  tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.49);
 
   // Guarantee at least one TAP! — if all are don't-tap, flip a random one.
   if (tapSequence.every(v => v)) {
@@ -998,11 +1012,12 @@ function resolveDontTap() {
   if (setTapNum < TAPS_PER_SET) {
     showGetReady();
   } else {
-    const avg = Math.round(setTaps.reduce((a, b) => a + b, 0) / setTaps.length);
+    const taps = setTaps.slice();
+    const avg  = Math.round(taps.reduce((a, b) => a + b, 0) / taps.length);
     setTaps   = [];
     setTapNum = 0;
-    if (mode === 'solo') soloResult(avg);
-    else challengeResult(avg);
+    if (mode === 'solo') soloResult(avg, taps);
+    else challengeResult(avg, taps);
   }
 }
 
@@ -1075,11 +1090,12 @@ function handleTap(e) {
     showGetReady();
   } else {
     // Set complete — average all taps
-    const avg = Math.round(setTaps.reduce((a, b) => a + b, 0) / setTaps.length);
+    const taps = setTaps.slice();
+    const avg  = Math.round(taps.reduce((a, b) => a + b, 0) / taps.length);
     setTaps   = [];
     setTapNum = 0;
-    if (mode === 'solo') soloResult(avg);
-    else challengeResult(avg);
+    if (mode === 'solo') soloResult(avg, taps);
+    else challengeResult(avg, taps);
   }
 }
 
@@ -1093,7 +1109,11 @@ scrEls.tap.addEventListener('mousedown', handleTap);
 // ── SOLO RESULT ──
 // avg = mean of all TAPS_PER_SET tap times in the completed set (6 or 7 taps).
 // Adds to history (capped at 20), increments streak, shows the result screen.
-function soloResult(avg) {
+function formatBreakdown(taps) {
+  return taps.join(' + ') + ' ÷ ' + taps.length + ' = ' + Math.round(taps.reduce((a, b) => a + b, 0) / taps.length) + 'ms';
+}
+
+function soloResult(avg, taps) {
   history.push(avg);
   if (history.length > 20) history = history.slice(-20);
   localStorage.setItem('rfx_hist', JSON.stringify(history));
@@ -1107,6 +1127,7 @@ function soloResult(avg) {
   timeEl.textContent = avg;
   timeEl.style.color = timeColor(avg);
   const g = applyGradeStyle(gradeEl, avg);
+  document.getElementById('resultBreakdown').textContent = formatBreakdown(taps);
 
   if (avg === best && history.length > 1) {
     document.getElementById('resultCaption').textContent = '🏆 new best! Your Reflex rating is:';
@@ -1125,8 +1146,8 @@ function soloResult(avg) {
 // Called once per player per round. First call shows the per-player result and prompts
 // phone pass; second call compares both and records the round winner.
 // Match is best-of-3 rounds (first to 2 round wins, or whoever leads after 3 rounds).
-function challengeResult(avg) {
-  chalRoundResults.push({ player: chalTurn, avg });
+function challengeResult(avg, taps) {
+  chalRoundResults.push({ player: chalTurn, avg, taps });
   chalTimes[chalTurn].push(avg);
 
   // Show per-player round result
@@ -1134,6 +1155,7 @@ function challengeResult(avg) {
   const crTimeEl = document.getElementById('crTime');
   crTimeEl.textContent = avg;
   crTimeEl.style.color = timeColor(avg);
+  document.getElementById('crBreakdown').textContent = formatBreakdown(taps);
 
   const crGradeEl = document.getElementById('crGrade');
   const g = applyGradeStyle(crGradeEl, avg);
@@ -1238,6 +1260,7 @@ function showFinal() {
       : null;
     document.getElementById(`fcName${p+1}`).textContent = chalPlayers[p];
     document.getElementById(`fcBest${p+1}`).textContent = roundAvg ? roundAvg + 'ms' : '—';
+    document.getElementById(`fcBreakdown${p+1}`).textContent = times.length > 1 ? formatBreakdown(times) : '';
     document.getElementById(`fcWins${p+1}`).textContent = `${chalScores[p]} win${chalScores[p] !== 1 ? 's' : ''}`;
   });
 

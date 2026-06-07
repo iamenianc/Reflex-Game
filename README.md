@@ -22,11 +22,11 @@ Every set is guaranteed to include at least one **Don't Tap** screen and at leas
 
 At the start of each set, the full sequence of tap types is pre-determined — not decided screen-by-screen. The process:
 
-1. For each of the 6 or 7 slots in the set, independently assign a 50% chance of being "Don't Tap" using `crypto.getRandomValues` for cryptographic-quality entropy.
+1. For each of the 6 or 7 slots in the set, independently assign a 49% chance of being "Don't Tap" using `crypto.getRandomValues` for cryptographic-quality entropy.
 2. If every slot ended up as Don't Tap, one random slot is flipped to TAP!
 3. If no slot ended up as Don't Tap, one random slot is flipped to DON'T TAP!
 
 This means:
 - The **first tap** in a set can be a Don't Tap (no special protection for slot 0).
 - The sequence is fully fixed before play begins — there is no adaptive or memory-based adjustment mid-set.
-- Expected Don't Tap screens per set: ~3 out of 6, or ~3.5 out of 7 (50%), before the guarantee corrections kick in.
+- Expected Don't Tap screens per set: ~2.9 out of 6, or ~3.4 out of 7 (≈49%), before the guarantee corrections kick in.
