@@ -424,7 +424,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.011</div>
+  <div class="version-footer">v1.0.012</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -474,7 +474,7 @@
   <div class="result-time" id="resultTime">000</div>
   <div class="result-unit">milliseconds avg</div>
   <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">avg of 5 taps</div>
-  <div class="grade-caption" id="resultCaption">you have the reaction time of a</div>
+  <div class="grade-caption" id="resultCaption">your reflex rating is</div>
   <div class="result-grade" id="resultGrade"></div>
   <div class="stats-row">
     <div class="stat"><div class="stat-val" id="statBest">—</div><div class="stat-lbl">Best</div></div>
@@ -509,7 +509,7 @@
   <div class="round-time" id="crTime">000</div>
   <div class="round-unit">milliseconds avg</div>
   <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">avg of 5 taps</div>
-  <div class="grade-caption">you have the reaction time of a</div>
+  <div class="grade-caption">your reflex rating is</div>
   <div class="round-grade" id="crGrade"></div>
   <div class="round-winner-tag hidden" id="crWinnerTag"></div>
   <div class="round-next-info" id="crNextInfo"></div>
@@ -552,34 +552,33 @@
 // ═══════════════════════════════════════════════════════════
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
-let audioUnlocked = false;
 
-// Lazily creates and resumes the shared AudioContext.
+// Creates the context if needed and resumes it. Safe to call anywhere.
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new AudioCtx();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 
-// iOS only truly unlocks Web Audio when a sound is started inside a user
-// gesture. resume() alone leaves the context muted. Play a silent buffer
-// during the first touch/click anywhere to unlock it for the whole session.
-// Uses capture phase on touchstart so it fires before handleTap on the same gesture.
-// Waits for the resume() Promise to resolve before marking unlocked — ctx.state
-// is still 'suspended' synchronously on iOS even after calling resume().
+// iOS requires that an AudioContext be created AND a node started in the same
+// synchronous call stack as the user gesture. We create the context here (first
+// touch anywhere) and play a near-silent real oscillator — not just a buffer —
+// so Safari actually unlocks the audio hardware. After this, any sounds called
+// from setTimeout/setInterval will play normally for the rest of the session.
 function unlockAudio() {
-  if (audioUnlocked) return;
-  const ctx = getAudioCtx();
-  const buf = ctx.createBuffer(1, 1, 22050);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  src.connect(ctx.destination);
-  src.start(0);
-  ctx.resume().then(() => {
-    audioUnlocked = true;
-    ['touchstart', 'pointerdown', 'click'].forEach(ev =>
-      document.removeEventListener(ev, unlockAudio, { capture: true }));
-  });
+  ['touchstart', 'pointerdown', 'click'].forEach(ev =>
+    document.removeEventListener(ev, unlockAudio, { capture: true }));
+  if (!audioCtx) audioCtx = new AudioCtx();
+  audioCtx.resume();
+  // Play a real (but near-inaudible) oscillator node synchronously inside this
+  // gesture so iOS registers the context as user-activated.
+  const osc  = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+  osc.start(audioCtx.currentTime);
+  osc.stop(audioCtx.currentTime + 0.001);
 }
 
 ['touchstart', 'pointerdown', 'click'].forEach(ev =>
@@ -641,7 +640,6 @@ let reactionGain = null;
 
 function startReactionTone() {
   const ctx = getAudioCtx();
-  if (ctx.state !== 'running') return; // iOS: context not yet unlocked — skip silently
   reactionOsc  = ctx.createOscillator();
   reactionGain = ctx.createGain();
   reactionOsc.connect(reactionGain);
@@ -953,9 +951,9 @@ function soloResult(avg) {
   const g = applyGradeStyle(gradeEl, avg);
 
   if (avg === best && history.length > 1) {
-    document.getElementById('resultCaption').textContent = '🏆 new best! you have the reaction time of a';
+    document.getElementById('resultCaption').textContent = '🏆 new best! Your Reflex rating is:';
   } else {
-    document.getElementById('resultCaption').textContent = 'you have the reaction time of a';
+    document.getElementById('resultCaption').textContent = 'Your Reflex rating is:';
   }
   gradeEl.textContent = `${g.emoji} ${g.label}`;
 
