@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Do not edit or update this file unless the user explicitly asks you to update CLAUDE.md.**
 **Read README.md as the first step if you have no other context**
-**Ask if user wants the version number updated to a new recommended number**
+**Automatically bump the version number after any change to index.html. The version lives in the `.version-footer` div (format `vMAJOR.MINOR.PATCH`, e.g. `v1.0.003`); increment the PATCH segment by one each time, zero-padded to 3 digits.**
 **At the end of every response, output the number of tokens used in the format: `Tokens used: {input} in / {output} out`**/
 
 
