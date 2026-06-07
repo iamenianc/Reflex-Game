@@ -165,7 +165,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    padding: 0 16px;
     animation: tapPop 0.15s ease-out forwards;
+  }
+  .tap-text.dont-tap {
+    font-size: clamp(30px, 9vw, 56px);
+    letter-spacing: 0.04em;
+    line-height: 1.1;
   }
   @keyframes tapPop {
     0% { transform: scale(0.8); opacity: 0; }
@@ -424,7 +431,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.012</div>
+  <div class="version-footer">v1.0.014</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -449,14 +456,14 @@
 
 <!-- TAP -->
 <div class="screen hidden" id="tap">
-  <div class="tap-text">TAP!</div>
+  <div class="tap-text" id="tapText">TAP!</div>
 </div>
 
 <!-- EARLY -->
 <div class="screen hidden" id="early">
   <div class="early-icon">⚡</div>
-  <div class="early-text">TOO SOON</div>
-  <div class="early-sub">Wait for green</div>
+  <div class="early-text" id="earlyText">TOO SOON</div>
+  <div class="early-sub" id="earlySub">Wait for green</div>
   <button class="btn-retry" id="btnEarlyBack">BACK TO MENU</button>
 </div>
 
@@ -721,6 +728,10 @@ let TAPS_PER_SET = 6;
 let setTaps   = []; // reaction times (ms) collected so far in the current set
 let setTapNum = 0;  // number of successful taps completed so far
 
+// Don't-tap mode: 33% chance per tap screen. Caps at 3 occurrences per set.
+let dontTapMode  = false;
+let dontTapCount = 0;
+
 // Challenge (2P) state — reset when a new challenge match begins (btnBegin) or on rematch.
 // chalRound:        0-based index of the current round (max 2 for best-of-3).
 // chalTurn:         index into chalPlayers of whose turn it currently is (0 or 1).
@@ -822,6 +833,7 @@ function randomizeTapsPerSet() {
   TAPS_PER_SET = Math.random() < 0.5 ? 6 : 7;
   setTaps      = [];
   setTapNum    = 0;
+  dontTapCount = 0;
 }
 
 function startWait() {
@@ -855,6 +867,8 @@ scrEls.wait.addEventListener('pointerdown', e => {
     chalScores[1 - chalTurn]++;
     updateScoreBar();
   }
+  document.getElementById('earlyText').textContent = 'TOO SOON';
+  document.getElementById('earlySub').textContent  = 'Wait for green';
   show('early');
 });
 
@@ -866,6 +880,7 @@ function triggerSlow() {
   tapStartTime = 0;
   setTaps      = [];
   setTapNum    = 0;
+  dontTapMode  = false;
   stopReactionTone();
   soundSlow();
   if (mode === 'solo') {
@@ -878,15 +893,39 @@ function triggerSlow() {
   show('slow');
 }
 
+// Fires after 1500ms when player correctly avoids tapping on a "don't tap" screen.
+// Counts as a successful resist — advance the set without recording a reaction time.
+function resolveDontTap() {
+  if (!tapStartTime) return; // already fired (tapped too early or handled)
+  tapStartTime = 0;
+  dontTapMode  = false;
+  stopReactionTone();
+  setTapNum++;
+  if (setTapNum < TAPS_PER_SET) {
+    showGetReady();
+  } else {
+    const avg = Math.round(setTaps.reduce((a, b) => a + b, 0) / setTaps.length);
+    setTaps   = [];
+    setTapNum = 0;
+    if (mode === 'solo') soloResult(avg);
+    else challengeResult(avg);
+  }
+}
+
 // Double-rAF ensures tapStartTime is set only after the browser has fully painted the
 // green tap screen. First rAF = style/layout flush, second rAF = paint committed.
 function showTap() {
+  dontTapMode = dontTapCount < 3 && Math.random() < 0.5;
+  if (dontTapMode) dontTapCount++;
+  const tapTextEl = document.getElementById('tapText');
+  tapTextEl.textContent = dontTapMode ? "DON'T TAP!" : 'TAP!';
+  tapTextEl.classList.toggle('dont-tap', dontTapMode);
   show('tap');
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
       startReactionTone();
-      slowTimeout = setTimeout(triggerSlow, 1500);
+      slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, 1500);
     });
   });
 }
@@ -905,6 +944,28 @@ function handleTap(e) {
   if (!tapStartTime) return; // guard: fired before paint committed, or after triggerSlow ran
   clearTimeout(slowTimeout);
   slowTimeout = null;
+
+  if (dontTapMode) {
+    // Player tapped when they shouldn't have
+    tapStartTime = 0;
+    dontTapMode  = false;
+    setTaps   = [];
+    setTapNum = 0;
+    stopReactionTone();
+    soundEarly();
+    if (mode === 'solo') {
+      streak = 0;
+      localStorage.setItem('rfx_streak', streak);
+    } else {
+      chalScores[1 - chalTurn]++;
+      updateScoreBar();
+    }
+    document.getElementById('earlyText').textContent = "DON'T TAP!";
+    document.getElementById('earlySub').textContent  = 'You were not supposed to tap';
+    show('early');
+    return;
+  }
+
   stopReactionTone();
   const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0; // zero before any show() call to prevent double-fire
