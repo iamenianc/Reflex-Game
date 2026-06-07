@@ -229,6 +229,15 @@
   }
   .btn-home:active { transform: scale(0.96); color: var(--white); }
 
+  /* ── GET READY ── */
+  #getReady { background: var(--amber); gap: 16px; }
+  .getready-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(60px, 18vw, 110px);
+    letter-spacing: 0.1em;
+    color: #0a0a0a;
+  }
+
   /* ── EARLY ── */
   #early { background: #150505; gap: 20px; }
   .early-icon { font-size: 60px; }
@@ -422,6 +431,11 @@
   <div class="countdown-num" id="countNum">3</div>
 </div>
 
+<!-- GET READY -->
+<div class="screen hidden" id="getReady">
+  <div class="getready-text">GET READY</div>
+</div>
+
 <!-- WAIT -->
 <div class="screen hidden" id="wait">
   <div class="wait-player-tag" id="waitPlayerTag"></div>
@@ -456,7 +470,7 @@
   <div class="result-label">Your time</div>
   <div class="result-time" id="resultTime">000</div>
   <div class="result-unit">milliseconds avg</div>
-  <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">best 5 of 6 taps · latency adjusted −20ms</div>
+  <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">best 5 of 6 taps</div>
   <div class="grade-caption" id="resultCaption">you have the reaction time of a</div>
   <div class="result-grade" id="resultGrade"></div>
   <div class="stats-row">
@@ -493,7 +507,7 @@
   <div class="round-player-name" id="crPlayerName"></div>
   <div class="round-time" id="crTime">000</div>
   <div class="round-unit">milliseconds avg</div>
-  <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">best 5 of 6 taps · latency adjusted −20ms</div>
+  <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">best 5 of 6 taps</div>
   <div class="grade-caption">you have the reaction time of a</div>
   <div class="round-grade" id="crGrade"></div>
   <div class="round-winner-tag hidden" id="crWinnerTag"></div>
@@ -608,9 +622,6 @@ function stopReactionTone() {
   reactionGain = null;
 }
 
-// ── LATENCY OFFSET ──
-// Compensates for display + touch digitizer latency. Conservative estimate.
-const LATENCY_OFFSET = 20; // ms
 
 // ── GRADES (15, ordered best → worst) ──
 const GRADES = [
@@ -636,7 +647,7 @@ function getGrade(ms) {
 }
 
 // ── SCREENS ──
-const allScreens = ['home','countdown','wait','tap','early','slow','result','chalSetup','chalRound','chalFinal'];
+const allScreens = ['home','countdown','getReady','wait','tap','early','slow','result','chalSetup','chalRound','chalFinal'];
 const scrEls = {};
 allScreens.forEach(id => scrEls[id] = document.getElementById(id));
 
@@ -732,9 +743,14 @@ function startCountdown(context) {
     } else {
       clearInterval(interval);
       soundCountdownBeep(true);
-      startWait();
+      showGetReady();
     }
   }, 1000);
+}
+
+function showGetReady() {
+  show('getReady');
+  setTimeout(startWait, 1000);
 }
 
 function startWait() {
@@ -821,7 +837,7 @@ function handleTap(e) {
   clearTimeout(slowTimeout);
   slowTimeout = null;
   stopReactionTone();
-  const ms = Math.max(1, Math.round(performance.now() - tapStartTime) - LATENCY_OFFSET);
+  const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0; // prevent double-fire
 
   // >1000ms = failure — same consequence as early tap
@@ -847,8 +863,8 @@ function handleTap(e) {
   setTapNum++;
 
   if (setTapNum < TAPS_PER_SET) {
-    // More taps needed — go straight to next wait (no countdown)
-    startWait();
+    // More taps needed — show get ready then wait
+    showGetReady();
   } else {
     // All 6 done — drop worst tap, average the top 5
     const sorted = [...setTaps].sort((a, b) => a - b);
