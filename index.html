@@ -626,6 +626,7 @@ let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
 // ── GAME STATE ──
 let tapStartTime = 0;
 let waitTimeout  = null;
+let slowTimeout  = null;
 let mode = 'solo'; // 'solo' | 'challenge'
 
 // Set state — 3 taps per set, average is the score
@@ -752,11 +753,31 @@ scrEls.wait.addEventListener('pointerdown', e => {
 // ── SHOW TAP ──
 // Start the clock only after the green screen has actually been painted.
 // Two nested rAFs: first rAF = layout/style flush, second rAF = paint complete.
+function triggerSlow() {
+  if (!tapStartTime) return; // already tapped
+  tapStartTime = 0;
+  setTaps   = [];
+  setTapNum = 0;
+  soundSlow();
+  if (mode === 'solo') {
+    streak = 0;
+    localStorage.setItem('rfx_streak', streak);
+    show('slow');
+  } else {
+    const winner = 1 - chalTurn;
+    chalScores[winner]++;
+    updateScoreBar();
+    document.getElementById('slow').dataset.chalSlow = '1';
+    show('slow');
+  }
+}
+
 function showTap() {
   show('tap');
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
+      slowTimeout = setTimeout(triggerSlow, 1000);
     });
   });
 }
@@ -770,6 +791,8 @@ function showTap() {
 
 function handleTap(e) {
   if (!tapStartTime) return; // guard: fired before paint completed
+  clearTimeout(slowTimeout);
+  slowTimeout = null;
   const ms = Math.max(1, Math.round(performance.now() - tapStartTime) - LATENCY_OFFSET);
   tapStartTime = 0; // prevent double-fire
 
