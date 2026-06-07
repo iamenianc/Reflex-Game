@@ -451,7 +451,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.001</div>
+  <div class="version-footer">v1.0.002</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -1056,8 +1056,11 @@ function showFinal() {
 }
 
 // ── HOME BUTTONS ──
+document.getElementById('btnStart').addEventListener('touchstart', e => {
+  e.preventDefault();
+  getAudioCtx().resume();
+}, { passive: false });
 document.getElementById('btnStart').addEventListener('click', () => {
-  getAudioCtx().resume(); // iOS requires resume() inside a user gesture
   mode = 'solo';
   showScoreBar(false);
   startCountdown('');
