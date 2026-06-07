@@ -72,10 +72,34 @@
     font-size: 12px;
     letter-spacing: 0.2em;
     color: var(--text-dim);
-    margin-bottom: 36px;
+    margin-bottom: 28px;
     text-transform: uppercase;
   }
   .best-display span { color: var(--amber); }
+
+  /* ── TAP COUNT SELECTOR ── */
+  .tap-count-row {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; margin-bottom: 28px;
+  }
+  .tap-count-label {
+    font-size: 10px; letter-spacing: 0.3em;
+    color: var(--text-dim); text-transform: uppercase;
+  }
+  .tap-count-options { display: flex; gap: 7px; }
+  .tap-count-opt {
+    width: 34px; height: 34px; border-radius: 4px;
+    border: 1px solid var(--muted); background: transparent;
+    color: var(--text-dim); font-family: 'Bebas Neue', sans-serif;
+    font-size: 19px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s, background 0.1s, color 0.1s, border-color 0.1s;
+  }
+  .tap-count-opt.selected {
+    background: var(--white); color: var(--bg); border-color: var(--white);
+  }
+  .tap-count-opt:active { transform: scale(0.88); }
+
   .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .btn-solo {
     background: var(--white);
@@ -418,6 +442,10 @@
     <p>How fast are you?</p>
   </div>
   <div class="best-display" id="bestDisplay">Best — — —</div>
+  <div class="tap-count-row">
+    <div class="tap-count-label">Taps per set</div>
+    <div class="tap-count-options" id="tapCountOptions"></div>
+  </div>
   <div class="home-buttons">
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
@@ -470,7 +498,7 @@
   <div class="result-label">Your time</div>
   <div class="result-time" id="resultTime">000</div>
   <div class="result-unit">milliseconds avg</div>
-  <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">best 5 of 6 taps</div>
+  <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">avg of 5 taps</div>
   <div class="grade-caption" id="resultCaption">you have the reaction time of a</div>
   <div class="result-grade" id="resultGrade"></div>
   <div class="stats-row">
@@ -507,7 +535,7 @@
   <div class="round-player-name" id="crPlayerName"></div>
   <div class="round-time" id="crTime">000</div>
   <div class="round-unit">milliseconds avg</div>
-  <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">best 5 of 6 taps</div>
+  <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">avg of 5 taps</div>
   <div class="grade-caption">you have the reaction time of a</div>
   <div class="round-grade" id="crGrade"></div>
   <div class="round-winner-tag hidden" id="crWinnerTag"></div>
@@ -665,8 +693,8 @@ let waitTimeout  = null;
 let slowTimeout  = null;
 let mode = 'solo'; // 'solo' | 'challenge'
 
-// Set state — 3 taps per set, average is the score
-const TAPS_PER_SET = 6;
+// Set state — taps per set (user-configurable 3–10, persisted)
+let TAPS_PER_SET = Math.min(10, Math.max(3, parseInt(localStorage.getItem('rfx_taps') || '5')));
 let setTaps = [];        // ms times collected so far in current set
 let setTapNum = 0;       // which tap we're on (0,1,2)
 
@@ -866,9 +894,7 @@ function handleTap(e) {
     showGetReady();
   } else {
     // All 6 done — drop worst tap, average the top 5
-    const sorted = [...setTaps].sort((a, b) => a - b);
-    const top5   = sorted.slice(0, 5);
-    const avg    = Math.round(top5.reduce((a, b) => a + b, 0) / 5);
+    const avg = Math.round(setTaps.reduce((a, b) => a + b, 0) / setTaps.length);
     setTaps   = [];
     setTapNum = 0;
     if (mode === 'solo') soloResult(avg);
@@ -911,6 +937,7 @@ function soloResult(avg) {
   document.getElementById('statBest').textContent   = best + 'ms';
   document.getElementById('statAvg').textContent    = allAvg + 'ms';
   document.getElementById('statStreak').textContent = streak;
+  document.querySelector('#result .result-unit[style]').textContent = `avg of ${TAPS_PER_SET} taps`;
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
 }
@@ -976,6 +1003,7 @@ function challengeResult(avg) {
     }
   }
 
+  document.querySelector('#chalRound .round-unit[style]').textContent = `avg of ${TAPS_PER_SET} taps`;
   show('chalRound');
 }
 
@@ -1139,6 +1167,25 @@ document.getElementById('btnFinalHome').addEventListener('click', () => {
   showScoreBar(false); updateBestDisplay(); show('home');
 });
 
+// ── TAP COUNT SELECTOR ──
+function initTapCountSelector() {
+  const container = document.getElementById('tapCountOptions');
+  container.innerHTML = '';
+  for (let n = 3; n <= 10; n++) {
+    const btn = document.createElement('button');
+    btn.className = 'tap-count-opt' + (n === TAPS_PER_SET ? ' selected' : '');
+    btn.textContent = n;
+    btn.addEventListener('click', () => {
+      TAPS_PER_SET = n;
+      localStorage.setItem('rfx_taps', n);
+      container.querySelectorAll('.tap-count-opt').forEach((el, i) => {
+        el.classList.toggle('selected', i + 3 === n);
+      });
+    });
+    container.appendChild(btn);
+  }
+}
+
 // ── BLOCK ALL KEYBOARD INPUT ──
 // Buttons respond to Space/Enter natively; prevent that at capture phase.
 // Allow normal typing in the player-name input fields only.
@@ -1149,6 +1196,7 @@ document.addEventListener('keydown', blockKeyboard, { capture: true });
 document.addEventListener('keyup',   blockKeyboard, { capture: true });
 
 // ── INIT ──
+initTapCountSelector();
 updateBestDisplay();
 show('home');
 
