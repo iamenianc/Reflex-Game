@@ -157,11 +157,11 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(72px, 22vw, 140px);
     letter-spacing: 0.08em;
-    color: var(--green);
+    color: #000000;
     width: clamp(220px, 55vw, 380px);
     height: clamp(220px, 55vw, 380px);
     border-radius: 50%;
-    background: #0a0a0a;
+    background: var(--green);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -232,7 +232,7 @@
   .btn-home:active { transform: scale(0.96); color: var(--white); }
 
   /* ── GET READY ── */
-  #getReady { background: var(--red); gap: 16px; }
+  #getReady { background: #000000; gap: 16px; }
   .getready-text {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
@@ -424,7 +424,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.009</div>
+  <div class="version-footer">v1.0.010</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -645,8 +645,8 @@ function startReactionTone() {
   reactionOsc.connect(reactionGain);
   reactionGain.connect(ctx.destination);
   reactionOsc.type = 'sine';
-  reactionOsc.frequency.setValueAtTime(880, ctx.currentTime);
-  reactionGain.gain.setValueAtTime(0.28, ctx.currentTime);
+  reactionOsc.frequency.setValueAtTime(780, ctx.currentTime);
+  reactionGain.gain.setValueAtTime(0.20, ctx.currentTime);
   reactionOsc.start(ctx.currentTime);
 }
 

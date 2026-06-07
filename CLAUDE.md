@@ -21,10 +21,9 @@ Open `index.html` directly in a browser. No server or build step needed.
 ## Architecture
 
 The entire app is one file (`index.html`, ~1200 lines) with three sections:
-
-- **CSS** (lines 13–422): CSS custom properties for theming, responsive `clamp()` sizing, keyframe animations
-- **HTML** (lines 424–570): Ten `.screen` divs representing game states
-- **JavaScript** (lines 572–1209): Game logic, audio engine, PWA bootstrap
+- **CSS** 
+- **HTML** 
+- **JavaScript** 
 
 ### Screen/State System
 
@@ -36,11 +35,6 @@ show('screenName')  // hides all screens, reveals the named one
 
 Screens: `home`, `countdown`, `getReady`, `wait`, `tap`, `early`, `slow`, `result`, `chalSetup`, `chalRound`, `chalFinal`
 
-### Game Flow
-
-**Solo**: `home → countdown → getReady → wait → tap → [early|slow|result] → home`
-
-**Challenge**: `home → chalSetup → [N rounds: countdown → getReady → wait → tap → chalRound] → chalFinal → home`
 
 ### Timing
 
