@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Do not edit or update this file unless the user explicitly asks you to update CLAUDE.md.**
 **Read README.md as the first step if you have no other context**
 **Ask if user wants the version number updated to a new recommended number**
-**At the end of every response, output the number of tokens used in the format: `Tokens used: {input} in / {output} out`**
+**At the end of every response, output the number of tokens used in the format: `Tokens used: {input} in / {output} out`**/
 
 
 ## Project Overview
