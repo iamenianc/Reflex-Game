@@ -15,7 +15,10 @@
 //   score:ABCDE        → that tag's current best, JSON {tag, ms, at} (one key per player)
 const KV_KEY     = 'leaderboard';
 const SCORE_PFX  = 'score:';
+const RL_PFX     = 'rl:';
 const MAX_STORED = 10;
+const RL_WINDOW_MS = 30_000; // min gap between accepted POSTs for the same tag
+const RL_TTL_SEC   = 60;     // KV min TTL is 60s; we gate on timestamp, key self-cleans
 
 export default {
   async fetch(request, env) {
@@ -37,6 +40,14 @@ export default {
       return Response.json(entries.slice(0, 10), { headers: cors });
     }
 
+    // GET /exists?tag=X → { exists: bool }  (is this tag already recorded?)
+    if (method === 'GET' && url.pathname === '/exists') {
+      const tag = (url.searchParams.get('tag') || '').toUpperCase();
+      if (!/^[A-Z]{1,6}$/.test(tag)) return bad('invalid tag', cors);
+      const hit = await env.KV.get(SCORE_PFX + tag);
+      return Response.json({ exists: hit !== null }, { headers: cors });
+    }
+
     // POST /score
     if (method === 'POST' && url.pathname === '/score') {
       let body;
@@ -47,6 +58,24 @@ export default {
         return bad('tag must be 1-6 uppercase letters A-Z', cors);
       if (typeof ms !== 'number' || !Number.isInteger(ms) || ms < 100 || ms > 999)
         return bad('ms must be an integer between 100 and 999', cors);
+
+      // Rate limit: one accepted POST per tag per 30s, and one at a time.
+      // The rl: key both enforces the 30s gap and acts as an in-flight lock —
+      // a concurrent POST for the same tag sees it and is rejected.
+      const rlKey  = RL_PFX + tag;
+      const rlPrev = await env.KV.get(rlKey);
+      if (rlPrev !== null) {
+        const elapsed = Date.now() - Number(rlPrev);
+        if (!(elapsed >= 0) || elapsed < RL_WINDOW_MS) {
+          const retry = Math.max(1, Math.ceil((RL_WINDOW_MS - elapsed) / 1000));
+          return new Response(JSON.stringify({ error: 'rate limited', retryAfter: retry }), {
+            status: 429,
+            headers: { ...cors, 'Content-Type': 'application/json', 'Retry-After': String(retry) }
+          });
+        }
+      }
+      // Claim the window immediately, before any read-modify-write below.
+      await env.KV.put(rlKey, String(Date.now()), { expirationTtl: RL_TTL_SEC });
 
       // 1. Read this tag's existing best — is this submission a new best?
       const scoreKey = SCORE_PFX + tag;

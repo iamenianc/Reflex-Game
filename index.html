@@ -580,7 +580,7 @@
     <div class="lb-title">Global Best</div>
     <div id="lbRows"></div>
   </div>
-  <div class="version-footer">v1.0.037</div>
+  <div class="version-footer">v1.0.040</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -1258,16 +1258,18 @@ function soloResult(avg, taps) {
   if (avg < 350) soundGoodResult(); else soundBadResult();
   show('result');
 
-  // Only a fast solo run (under 500ms) qualifies for the global leaderboard.
-  // Ask for a tag the first time the player qualifies, then submit.
-  if (avg < 500) {
+  // Refresh the board, then ask for a tag (or submit) only if this run would
+  // actually place on the global leaderboard.
+  (async () => {
+    await loadLeaderboard();
+    if (!qualifies(avg)) return;
     if (isValidTag(playerTag)) {
       submitScore(avg);
     } else {
       pendingScore = avg;
       showTagModal();
     }
-  }
+  })();
 }
 
 // ── CHALLENGE RESULT ──
@@ -1492,7 +1494,12 @@ document.addEventListener('keyup',   blockKeyboard, { capture: true });
 // ── LEADERBOARD / TAG ──
 const WORKER_URL = 'https://reflex-scores.reflex-game.workers.dev';
 let playerTag = localStorage.getItem('rfx_tag') || '';
-let pendingScore = null; // qualifying solo score awaiting a tag before submit
+let pendingScore = null;      // qualifying solo score awaiting a tag before submit
+let leaderboard = [];          // last fetched top-10 [{tag, ms, at}, ...]
+const BOARD_SIZE = 10;
+let submitInFlight = false;    // one POST at a time
+let lastSubmitAt = 0;          // epoch ms of last successful POST
+const SUBMIT_COOLDOWN_MS = 30_000;
 
 function isValidTag(t) { return /^[A-Z]{1,6}$/.test(t); }
 
@@ -1508,9 +1515,12 @@ function hideTagModal() {
 const tagInput = document.getElementById('tagInput');
 const tagError = document.getElementById('tagError');
 
+let warnedTag = null; // tag the user was told already exists, awaiting re-confirm
+
 tagInput.addEventListener('input', () => {
   tagInput.value = tagInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
   tagError.textContent = '';
+  warnedTag = null; // editing clears any prior "already taken" warning
 });
 
 tagInput.addEventListener('keydown', e => {
@@ -1523,14 +1533,32 @@ document.getElementById('btnTagSkip').addEventListener('click', () => {
   hideTagModal();
 });
 
-function confirmTag() {
+// Returns true if the tag is already recorded on the server. On any network
+// error returns false (don't block the player over a failed check).
+async function tagExists(tag) {
+  try {
+    const res = await fetch(`${WORKER_URL}/exists?tag=${encodeURIComponent(tag)}`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data.exists;
+  } catch (_) { return false; }
+}
+
+async function confirmTag() {
   const val = tagInput.value.trim().toUpperCase();
   if (!isValidTag(val)) {
     tagError.textContent = '1–6 letters A–Z only';
     return;
   }
+  // If this tag is already taken, warn once and let them re-confirm or change it.
+  if (val !== warnedTag && await tagExists(val)) {
+    warnedTag = val;
+    tagError.textContent = `“${val}” is taken — confirm again to use it, or change it`;
+    return;
+  }
   playerTag = val;
   localStorage.setItem('rfx_tag', val);
+  warnedTag = null;
   hideTagModal();
   if (pendingScore !== null) {
     submitScore(pendingScore);
@@ -1539,22 +1567,46 @@ function confirmTag() {
   loadLeaderboard();
 }
 
+// A run qualifies for the global board only if it's fast (under 500ms) AND
+// it would actually place: either the board has a free slot, or it beats the
+// worst (highest-ms) entry currently recorded.
+function qualifies(ms) {
+  if (ms >= 500) return false;
+  if (leaderboard.length < BOARD_SIZE) return true;
+  const worst = Math.max(...leaderboard.map(e => e.ms));
+  return ms < worst;
+}
+
 async function submitScore(ms) {
   if (!isValidTag(playerTag)) return;
+  // Client-side guards mirror the Worker: one in-flight POST, one per 30s.
+  // The Worker is the real enforcer; this just avoids pointless 429s.
+  if (submitInFlight) return;
+  if (Date.now() - lastSubmitAt < SUBMIT_COOLDOWN_MS) return;
+  submitInFlight = true;
   try {
-    await fetch(`${WORKER_URL}/score`, {
+    const res = await fetch(`${WORKER_URL}/score`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tag: playerTag, ms })
     });
-  } catch (_) {}
+    if (res.status === 429) return; // rate limited by server; leave board as-is
+    if (res.ok) {
+      lastSubmitAt = Date.now();
+      loadLeaderboard(); // reflect the newly posted score
+    }
+  } catch (_) {
+  } finally {
+    submitInFlight = false;
+  }
 }
 
 async function loadLeaderboard() {
   try {
     const res  = await fetch(`${WORKER_URL}/scores`);
     const data = await res.json();
-    renderLeaderboard(data);
+    leaderboard = Array.isArray(data) ? data : [];
+    renderLeaderboard(leaderboard);
   } catch (_) {
     document.getElementById('lbRows').innerHTML =
       '<div style="font-size:10px;color:var(--muted);text-align:center;padding:6px 0">unavailable</div>';
