@@ -77,29 +77,6 @@
   }
   .best-display span { color: var(--amber); }
 
-  /* ── TAP COUNT SELECTOR ── */
-  .tap-count-row {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 10px; margin-bottom: 28px;
-  }
-  .tap-count-label {
-    font-size: 10px; letter-spacing: 0.3em;
-    color: var(--text-dim); text-transform: uppercase;
-  }
-  .tap-count-options { display: flex; gap: 7px; }
-  .tap-count-opt {
-    width: 34px; height: 34px; border-radius: 4px;
-    border: 1px solid var(--muted); background: transparent;
-    color: var(--text-dim); font-family: 'Bebas Neue', sans-serif;
-    font-size: 19px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform 0.1s, background 0.1s, color 0.1s, border-color 0.1s;
-  }
-  .tap-count-opt.selected {
-    background: var(--white); color: var(--bg); border-color: var(--white);
-  }
-  .tap-count-opt:active { transform: scale(0.88); }
-
   .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
   .version-footer { position: absolute; bottom: 18px; width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
   .btn-solo {
@@ -255,12 +232,12 @@
   .btn-home:active { transform: scale(0.96); color: var(--white); }
 
   /* ── GET READY ── */
-  #getReady { background: var(--amber); gap: 16px; }
+  #getReady { background: var(--red); gap: 16px; }
   .getready-text {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
     letter-spacing: 0.1em;
-    color: #0a0a0a;
+    color: white;
   }
 
   /* ── EARLY ── */
@@ -443,15 +420,11 @@
     <p>How fast are you?</p>
   </div>
   <div class="best-display" id="bestDisplay">Best — — —</div>
-  <div class="tap-count-row">
-    <div class="tap-count-label">Taps per set</div>
-    <div class="tap-count-options" id="tapCountOptions"></div>
-  </div>
   <div class="home-buttons">
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.003</div>
+  <div class="version-footer">v1.0.007</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -720,10 +693,10 @@ let waitTimeout  = null;
 let slowTimeout  = null;
 let mode = 'solo'; // 'solo' | 'challenge'
 
-// Set state — taps per set (user-configurable 3–10, persisted)
-let TAPS_PER_SET = Math.min(10, Math.max(3, parseInt(localStorage.getItem('rfx_taps') || '5')));
-let setTaps = [];        // ms times collected so far in current set
-let setTapNum = 0;       // which tap we're on (0,1,2)
+// Set state — taps per set randomized to 6 or 7 at the start of each set
+let TAPS_PER_SET = 6;
+let setTaps = [];   // tap times collected so far in current set
+let setTapNum = 0;  // how many taps done so far
 
 // Challenge state
 let chalPlayers = ['Player 1', 'Player 2'];
@@ -781,6 +754,7 @@ function showScoreBar(visible) {
 
 // ── COUNTDOWN ──
 function startCountdown(context) {
+  randomizeTapsPerSet();
   show('countdown');
   document.getElementById('countContext').textContent = context || '';
   let n = 3;
@@ -806,6 +780,12 @@ function startCountdown(context) {
 function showGetReady() {
   show('getReady');
   setTimeout(startWait, 1000);
+}
+
+function randomizeTapsPerSet() {
+  TAPS_PER_SET = Math.random() < 0.5 ? 6 : 7;
+  setTaps      = [];
+  setTapNum    = 0;
 }
 
 function startWait() {
@@ -847,8 +827,8 @@ scrEls.wait.addEventListener('pointerdown', e => {
 function triggerSlow() {
   if (!tapStartTime) return; // already tapped
   tapStartTime = 0;
-  setTaps   = [];
-  setTapNum = 0;
+  setTaps      = [];
+  setTapNum    = 0;
   stopReactionTone();
   soundSlow();
   if (mode === 'solo') {
@@ -906,10 +886,10 @@ function handleTap(e) {
   setTapNum++;
 
   if (setTapNum < TAPS_PER_SET) {
-    // More taps needed — show get ready then wait
+    // More taps needed in this set
     showGetReady();
   } else {
-    // All 6 done — drop worst tap, average the top 5
+    // Set complete — average all taps
     const avg = Math.round(setTaps.reduce((a, b) => a + b, 0) / setTaps.length);
     setTaps   = [];
     setTapNum = 0;
@@ -1029,7 +1009,6 @@ document.getElementById('btnNextRound').addEventListener('click', () => {
   if (next === 'final') {
     showFinal();
   } else if (next === 'round') {
-    // start countdown for next round
     startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
   } else {
     // pass phone to next player mid-round
@@ -1112,8 +1091,8 @@ document.getElementById('btnChalBack').addEventListener('click', () => {
 });
 
 document.getElementById('btnRetry').addEventListener('click', () => {
-  setTaps = []; setTapNum = 0;
-  mode = 'solo'; showScoreBar(false); startCountdown('');
+  mode = 'solo'; showScoreBar(false);
+  startCountdown('');
 });
 
 document.getElementById('btnHome').addEventListener('click', () => {
@@ -1146,25 +1125,6 @@ document.getElementById('btnFinalHome').addEventListener('click', () => {
   showScoreBar(false); updateBestDisplay(); show('home');
 });
 
-// ── TAP COUNT SELECTOR ──
-function initTapCountSelector() {
-  const container = document.getElementById('tapCountOptions');
-  container.innerHTML = '';
-  for (let n = 3; n <= 10; n++) {
-    const btn = document.createElement('button');
-    btn.className = 'tap-count-opt' + (n === TAPS_PER_SET ? ' selected' : '');
-    btn.textContent = n;
-    btn.addEventListener('click', () => {
-      TAPS_PER_SET = n;
-      localStorage.setItem('rfx_taps', n);
-      container.querySelectorAll('.tap-count-opt').forEach((el, i) => {
-        el.classList.toggle('selected', i + 3 === n);
-      });
-    });
-    container.appendChild(btn);
-  }
-}
-
 // ── BLOCK ALL KEYBOARD INPUT ──
 // Buttons respond to Space/Enter natively; prevent that at capture phase.
 // Allow normal typing in the player-name input fields only.
@@ -1175,7 +1135,6 @@ document.addEventListener('keydown', blockKeyboard, { capture: true });
 document.addEventListener('keyup',   blockKeyboard, { capture: true });
 
 // ── INIT ──
-initTapCountSelector();
 updateBestDisplay();
 show('home');
 
