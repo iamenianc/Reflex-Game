@@ -424,7 +424,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.010</div>
+  <div class="version-footer">v1.0.011</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -564,6 +564,9 @@ function getAudioCtx() {
 // iOS only truly unlocks Web Audio when a sound is started inside a user
 // gesture. resume() alone leaves the context muted. Play a silent buffer
 // during the first touch/click anywhere to unlock it for the whole session.
+// Uses capture phase on touchstart so it fires before handleTap on the same gesture.
+// Waits for the resume() Promise to resolve before marking unlocked — ctx.state
+// is still 'suspended' synchronously on iOS even after calling resume().
 function unlockAudio() {
   if (audioUnlocked) return;
   const ctx = getAudioCtx();
@@ -572,17 +575,15 @@ function unlockAudio() {
   src.buffer = buf;
   src.connect(ctx.destination);
   src.start(0);
-  ctx.resume();
-  // Confirm the context actually started before marking as unlocked.
-  if (ctx.state === 'running') {
+  ctx.resume().then(() => {
     audioUnlocked = true;
-    ['touchend', 'pointerdown', 'click'].forEach(ev =>
-      document.removeEventListener(ev, unlockAudio));
-  }
+    ['touchstart', 'pointerdown', 'click'].forEach(ev =>
+      document.removeEventListener(ev, unlockAudio, { capture: true }));
+  });
 }
 
-['touchend', 'pointerdown', 'click'].forEach(ev =>
-  document.addEventListener(ev, unlockAudio, { passive: true }));
+['touchstart', 'pointerdown', 'click'].forEach(ev =>
+  document.addEventListener(ev, unlockAudio, { passive: true, capture: true }));
 
 // Core oscillator helper. startTime is ctx.currentTime (or offset from it for chained tones).
 // rampDown=false leaves the tone at full gain — only used by the continuous reaction tone.
@@ -640,6 +641,7 @@ let reactionGain = null;
 
 function startReactionTone() {
   const ctx = getAudioCtx();
+  if (ctx.state !== 'running') return; // iOS: context not yet unlocked — skip silently
   reactionOsc  = ctx.createOscillator();
   reactionGain = ctx.createGain();
   reactionOsc.connect(reactionGain);
