@@ -410,6 +410,20 @@
     padding: 14px 40px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
   }
   .btn-rematch:active { transform: scale(0.96); }
+
+  .bgm-toggle {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    border: 1px solid var(--muted);
+    border-radius: 4px;
+    padding: 8px 24px;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .bgm-toggle.on { color: var(--green); border-color: var(--green); }
 </style>
 </head>
 <body>
@@ -436,8 +450,9 @@
   <div class="home-buttons">
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
+    <div class="bgm-toggle" id="bgmToggle"></div>
   </div>
-  <div class="version-footer">v1.0.022</div>
+  <div class="version-footer">v1.0.032</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -563,6 +578,33 @@
 // ═══════════════════════════════════════════════════════════
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx = null;
+let bgmSource  = null;
+let bgmGain    = null;
+let bgmEnabled = localStorage.getItem('rfx_bgm') === '1'; // default off
+
+function startBGM() {
+  if (bgmSource || !bgmEnabled) return;
+  const ctx = getAudioCtx();
+  bgmGain = ctx.createGain();
+  bgmGain.gain.setValueAtTime(0.25, ctx.currentTime);
+  bgmGain.connect(ctx.destination);
+  fetch('bgmc.mp3')
+    .then(r => r.arrayBuffer())
+    .then(buf => ctx.decodeAudioData(buf))
+    .then(decoded => {
+      if (!bgmEnabled) return; // toggled off while loading
+      bgmSource = ctx.createBufferSource();
+      bgmSource.buffer = decoded;
+      bgmSource.loop   = true;
+      bgmSource.connect(bgmGain);
+      bgmSource.start(0);
+    });
+}
+
+function stopBGM() {
+  if (bgmSource) { try { bgmSource.stop(); } catch(e) {} bgmSource = null; }
+  if (bgmGain)   { bgmGain.disconnect(); bgmGain = null; }
+}
 
 // Creates the context if needed and resumes it. Safe to call anywhere.
 function getAudioCtx() {
@@ -581,6 +623,7 @@ function unlockAudio() {
     document.removeEventListener(ev, unlockAudio, { capture: true }));
   if (!audioCtx) audioCtx = new AudioCtx();
   audioCtx.resume();
+  startBGM();
   // Play a real (but near-inaudible) oscillator node synchronously inside this
   // gesture so iOS registers the context as user-activated.
   const osc  = audioCtx.createOscillator();
@@ -843,8 +886,10 @@ function randomizeTapsPerSet() {
   setTapNum             = 0;
   dontTapCount          = 0;
   dontTapOccurred       = false;
-  dontTapGuaranteedSlot = Math.floor(Math.random() * TAPS_PER_SET);
   tapGuaranteedSlot     = 1 + Math.floor(Math.random() * 4); // index 1–4 (taps 2–5)
+  let dgt;
+  do { dgt = 1 + Math.floor(Math.random() * (TAPS_PER_SET - 1)); } while (dgt === tapGuaranteedSlot);
+  dontTapGuaranteedSlot = dgt; // index 1+, never same slot as tapGuaranteedSlot
 }
 
 function startWait() {
@@ -928,7 +973,7 @@ function resolveDontTap() {
 function showTap() {
   const atGuaranteedSlot = !dontTapOccurred && setTapNum === dontTapGuaranteedSlot;
   const atTapSlot        = setTapNum === tapGuaranteedSlot;
-  dontTapMode = !atTapSlot && dontTapCount < 5 && (atGuaranteedSlot || Math.random() < 0.30);
+  dontTapMode = setTapNum > 0 && !atTapSlot && dontTapCount < 5 && (atGuaranteedSlot || Math.random() < 0.40);
   if (dontTapMode) { dontTapCount++; dontTapOccurred = true; }
   const tapTextEl = document.getElementById('tapText');
   if (dontTapMode) {
@@ -941,7 +986,7 @@ function showTap() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
-      if (!dontTapMode) startReactionTone(780);
+      startReactionTone(780);
       slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, 1500);
     });
   });
@@ -1168,6 +1213,19 @@ function showFinal() {
 // btnStart → solo flow; btnChallenge → setup screen; btnBegin → initialises challenge state
 // and starts round 1. btnRematch → resets scores but keeps player names.
 // goHome → shared handler for slow/early back buttons (resets partial set state).
+const bgmToggleEl = document.getElementById('bgmToggle');
+function updateBGMToggle() {
+  bgmToggleEl.textContent = bgmEnabled ? 'MUSIC ON' : 'MUSIC OFF';
+  bgmToggleEl.classList.toggle('on', bgmEnabled);
+}
+updateBGMToggle();
+bgmToggleEl.addEventListener('click', () => {
+  bgmEnabled = !bgmEnabled;
+  localStorage.setItem('rfx_bgm', bgmEnabled ? '1' : '0');
+  updateBGMToggle();
+  if (bgmEnabled) startBGM(); else stopBGM();
+});
+
 document.getElementById('btnStart').addEventListener('click', () => {
   mode = 'solo';
   showScoreBar(false);
@@ -1285,7 +1343,6 @@ show('home');
   };
   const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
   document.getElementById('pwaManifest').href = URL.createObjectURL(manifestBlob);
-
   // 3. Register an inline service worker for offline support
   if ('serviceWorker' in navigator) {
     const swCode = `
