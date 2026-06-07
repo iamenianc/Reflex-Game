@@ -482,7 +482,7 @@
   <div class="early-icon">⚡</div>
   <div class="early-text">TOO SOON</div>
   <div class="early-sub">Wait for green</div>
-  <button class="btn-retry" id="btnEarlyRetry">TRY AGAIN</button>
+  <button class="btn-retry" id="btnEarlyBack">BACK TO MENU</button>
 </div>
 
 <!-- SLOW -->
@@ -490,7 +490,7 @@
   <div class="early-icon">🐢</div>
   <div class="early-text" style="color:var(--amber)">TOO SLOW</div>
   <div class="early-sub">Under 1500ms next time</div>
-  <button class="btn-retry" id="btnSlowContinue">CONTINUE</button>
+  <button class="btn-retry" id="btnSlowContinue">BACK TO MENU</button>
 </div>
 
 <!-- RESULT (solo) -->
@@ -808,13 +808,8 @@ scrEls.wait.addEventListener('pointerdown', e => {
     streak = 0;
     localStorage.setItem('rfx_streak', streak);
   } else {
-    // In challenge, early tap loses the round for that player
-    const loser  = chalTurn;
-    const winner = 1 - chalTurn;
-    chalScores[winner]++;
+    chalScores[1 - chalTurn]++;
     updateScoreBar();
-    // Show early screen with challenge context flagged
-    document.getElementById('early').dataset.chalEarly = '1';
   }
   show('early');
 });
@@ -832,14 +827,11 @@ function triggerSlow() {
   if (mode === 'solo') {
     streak = 0;
     localStorage.setItem('rfx_streak', streak);
-    show('slow');
   } else {
-    const winner = 1 - chalTurn;
-    chalScores[winner]++;
+    chalScores[1 - chalTurn]++;
     updateScoreBar();
-    document.getElementById('slow').dataset.chalSlow = '1';
-    show('slow');
   }
+  show('slow');
 }
 
 function showTap() {
@@ -875,14 +867,11 @@ function handleTap(e) {
     if (mode === 'solo') {
       streak = 0;
       localStorage.setItem('rfx_streak', streak);
-      show('slow');
     } else {
-      const winner = 1 - chalTurn;
-      chalScores[winner]++;
+      chalScores[1 - chalTurn]++;
       updateScoreBar();
-      document.getElementById('slow').dataset.chalSlow = '1';
-      show('slow');
     }
+    show('slow');
     return;
   }
 
@@ -1104,52 +1093,15 @@ document.getElementById('btnHome').addEventListener('click', () => {
   showScoreBar(false); updateBestDisplay(); show('home');
 });
 
-document.getElementById('btnSlowContinue').addEventListener('click', () => {
-  const chalSlow = document.getElementById('slow').dataset.chalSlow === '1';
-  document.getElementById('slow').dataset.chalSlow = '';
+function goHome() {
+  setTaps = []; setTapNum = 0;
+  showScoreBar(false);
+  updateBestDisplay();
+  show('home');
+}
 
-  if (mode === 'solo') {
-    setTaps = []; setTapNum = 0;
-    startCountdown('');
-  } else if (chalSlow) {
-    chalRoundResults = [];
-    chalTurn = 0;
-    const matchOver = chalScores[0] >= 2 || chalScores[1] >= 2 || chalRound >= 2;
-    if (matchOver) {
-      showFinal();
-    } else {
-      chalRound++;
-      startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
-    }
-  } else {
-    setTaps = []; setTapNum = 0;
-    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
-  }
-});
-
-document.getElementById('btnEarlyRetry').addEventListener('click', () => {
-  const chalEarly = document.getElementById('early').dataset.chalEarly === '1';
-  document.getElementById('early').dataset.chalEarly = '';
-
-  if (mode === 'solo') {
-    setTaps = []; setTapNum = 0;
-    startCountdown('');
-  } else if (chalEarly) {
-    // Round was forfeited — check if match over, else go to round result
-    chalRoundResults = [];
-    chalTurn = 0;
-    const matchOver = chalScores[0] >= 2 || chalScores[1] >= 2 || chalRound >= 2;
-    if (matchOver) {
-      showFinal();
-    } else {
-      chalRound++;
-      startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
-    }
-  } else {
-    setTaps = []; setTapNum = 0;
-    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
-  }
-});
+document.getElementById('btnSlowContinue').addEventListener('click', goHome);
+document.getElementById('btnEarlyBack').addEventListener('click', goHome);
 
 document.getElementById('btnRematch').addEventListener('click', () => {
   setTaps = []; setTapNum = 0;
