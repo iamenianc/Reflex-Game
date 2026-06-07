@@ -431,7 +431,7 @@
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
     <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
   </div>
-  <div class="version-footer">v1.0.015</div>
+  <div class="version-footer">v1.0.017</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -920,7 +920,7 @@ function resolveDontTap() {
 // green tap screen. First rAF = style/layout flush, second rAF = paint committed.
 function showTap() {
   const atGuaranteedSlot = !dontTapOccurred && setTapNum === dontTapGuaranteedSlot;
-  dontTapMode = dontTapCount < 3 && (atGuaranteedSlot || Math.random() < 0.29);
+  dontTapMode = dontTapCount < 5 && (atGuaranteedSlot || Math.random() < 0.20);
   if (dontTapMode) { dontTapCount++; dontTapOccurred = true; }
   const tapTextEl = document.getElementById('tapText');
   tapTextEl.textContent = dontTapMode ? "DON'T TAP!" : 'TAP!';
