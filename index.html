@@ -1054,6 +1054,7 @@ function showFinal() {
 
 // ── HOME BUTTONS ──
 document.getElementById('btnStart').addEventListener('click', () => {
+  playTone(1, 'sine', 0.001, 0.001, getAudioCtx().currentTime, false); // iOS audio unlock
   mode = 'solo';
   showScoreBar(false);
   startCountdown('');
