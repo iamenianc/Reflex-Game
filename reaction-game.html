@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="REFLEX">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" id="appleTouchIcon">
+<link rel="manifest" id="pwaManifest">
+<title>REFLEX</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --red: #ff2d2d;
+    --green: #00e676;
+    --amber: #ffab00;
+    --blue: #3d9cf5;
+    --purple: #b06cf5;
+    --white: #f0f0f0;
+    --muted: #444;
+    --text-dim: #888;
+    --p1: #3d9cf5;
+    --p2: #f56c3d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.25s ease;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
+
+  /* ── HOME ── */
+  #home { background: var(--bg); gap: 0; }
+  .title-block { text-align: center; margin-bottom: 48px; }
+  .title-block h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 22vw, 140px);
+    letter-spacing: 0.12em;
+    line-height: 1;
+    color: var(--white);
+  }
+  .title-block p {
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    color: var(--text-dim);
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+  .best-display {
+    font-size: 12px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    margin-bottom: 36px;
+    text-transform: uppercase;
+  }
+  .best-display span { color: var(--amber); }
+  .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+  .btn-solo {
+    background: var(--white);
+    color: var(--bg);
+    border: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 0.15em;
+    padding: 16px 60px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: transform 0.1s, background 0.1s;
+    width: 260px;
+  }
+  .btn-solo:active { transform: scale(0.96); background: #ccc; }
+  .btn-challenge {
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.15em;
+    padding: 14px 60px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: transform 0.1s, background 0.1s;
+    width: 260px;
+  }
+  .btn-challenge:active { transform: scale(0.96); background: rgba(255,171,0,0.1); }
+
+  /* ── COUNTDOWN ── */
+  #countdown { background: var(--bg); gap: 16px; }
+  .countdown-context {
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .countdown-label { font-size: 12px; letter-spacing: 0.25em; color: var(--text-dim); text-transform: uppercase; }
+  .countdown-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(120px, 35vw, 220px);
+    line-height: 1;
+    color: var(--white);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+  }
+
+  /* ── WAIT ── */
+  #wait { background: var(--red); gap: 24px; cursor: pointer; }
+  .wait-player-tag {
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+  }
+  .wait-icon { font-size: 64px; animation: breathe 1.5s ease-in-out infinite; }
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+  .wait-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 14vw, 80px);
+    letter-spacing: 0.1em;
+    color: white;
+  }
+  .wait-sub { font-size: 12px; letter-spacing: 0.25em; color: rgba(255,255,255,0.55); text-transform: uppercase; }
+
+  /* ── TAP ── */
+  #tap { background: #ffffff; cursor: pointer; }
+  .tap-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 22vw, 140px);
+    letter-spacing: 0.08em;
+    color: var(--green);
+    width: clamp(220px, 55vw, 380px);
+    height: clamp(220px, 55vw, 380px);
+    border-radius: 50%;
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: tapPop 0.15s ease-out forwards;
+  }
+  @keyframes tapPop {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* ── RESULT (solo) ── */
+  #result { background: var(--bg); gap: 0; padding: 32px 32px; }
+  .result-label { font-size: 11px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; }
+  .result-time {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 25vw, 160px);
+    line-height: 1;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .result-unit { font-size: 12px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 16px; }
+  .grade-caption {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: lowercase;
+    margin-bottom: 8px;
+  }
+  .result-grade {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 8vw, 42px);
+    letter-spacing: 0.15em;
+    margin-bottom: 28px;
+    padding: 10px 22px;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .grade-s  { background: rgba(0,230,118,0.15);  color: var(--green); }
+  .grade-a  { background: rgba(61,156,245,0.15);  color: var(--blue); }
+  .grade-b  { background: rgba(255,171,0,0.15);   color: var(--amber); }
+  .grade-c  { background: rgba(240,240,240,0.08); color: var(--white); }
+  .grade-d  { background: rgba(255,45,45,0.12);   color: var(--red); }
+  .grade-f  { background: rgba(150,50,200,0.15);  color: var(--purple); }
+
+  .stats-row { display: flex; gap: 32px; margin-bottom: 32px; }
+  .stat { text-align: center; }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 34px;
+    letter-spacing: 0.05em;
+    color: var(--white);
+    line-height: 1;
+  }
+  .stat-lbl { font-size: 10px; letter-spacing: 0.22em; color: var(--text-dim); text-transform: uppercase; margin-top: 4px; }
+
+  .result-actions { display: flex; gap: 14px; }
+  .btn-retry {
+    background: var(--white); color: var(--bg); border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em;
+    padding: 14px 44px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
+  }
+  .btn-retry:active { transform: scale(0.96); }
+  .btn-home {
+    background: transparent; color: var(--text-dim); border: 1px solid var(--muted);
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em;
+    padding: 14px 28px; cursor: pointer; border-radius: 4px; transition: transform 0.1s, color 0.1s;
+  }
+  .btn-home:active { transform: scale(0.96); color: var(--white); }
+
+  /* ── EARLY ── */
+  #early { background: #150505; gap: 20px; }
+  .early-icon { font-size: 60px; }
+  .early-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 13vw, 68px); letter-spacing: 0.1em; color: var(--red); }
+  .early-sub { font-size: 12px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
+
+  /* ── CHALLENGE: PLAYER SETUP ── */
+  #chalSetup { background: var(--bg); gap: 0; padding: 32px; }
+  .chal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(44px, 13vw, 72px);
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+  }
+  .chal-sub { font-size: 11px; letter-spacing: 0.25em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 40px; }
+  .player-inputs { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; margin-bottom: 36px; }
+  .player-input-row { display: flex; align-items: center; gap: 12px; }
+  .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .p1-dot { background: var(--p1); }
+  .p2-dot { background: var(--p2); }
+  .player-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--muted);
+    color: var(--white);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    padding: 12px 14px;
+    border-radius: 4px;
+    outline: none;
+    letter-spacing: 0.05em;
+  }
+  .player-input:focus { border-color: var(--white); }
+  .btn-begin {
+    background: var(--amber); color: #0a0a0a; border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.15em;
+    padding: 16px 60px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
+    width: 260px;
+  }
+  .btn-begin:active { transform: scale(0.96); }
+  .btn-back {
+    margin-top: 12px;
+    background: transparent; color: var(--text-dim); border: none;
+    font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.2em;
+    cursor: pointer; text-transform: uppercase; text-decoration: underline;
+  }
+
+  /* ── CHALLENGE SCOREBOARD HEADER ── */
+  .chal-score-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    align-items: stretch;
+    height: 56px;
+    z-index: 10;
+  }
+  .chal-score-bar.hidden { display: none; }
+  .score-half {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+  }
+  .score-half.p1 { background: rgba(61,156,245,0.12); color: var(--p1); }
+  .score-half.p2 { background: rgba(245,108,61,0.12); color: var(--p2); }
+  .score-half.active-player { background: rgba(255,255,255,0.06); }
+  .score-pips { display: flex; gap: 6px; }
+  .pip { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid currentColor; }
+  .pip.won { background: currentColor; }
+
+  /* ── CHAL ROUND RESULT ── */
+  #chalRound { background: var(--bg); gap: 0; padding: 40px 28px; padding-top: 72px; }
+  .round-player-name {
+    font-size: 11px; letter-spacing: 0.3em; color: var(--text-dim);
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .round-time {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 22vw, 130px);
+    line-height: 1;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .round-unit { font-size: 12px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .round-grade {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 8vw, 42px); letter-spacing: 0.15em;
+    padding: 10px 22px; border-radius: 4px;
+    margin-bottom: 20px; text-align: center;
+  }
+  .round-winner-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 0.18em;
+    padding: 10px 24px; border-radius: 4px;
+    margin-bottom: 32px;
+  }
+  .round-winner-tag.p1w { background: rgba(61,156,245,0.15); color: var(--p1); }
+  .round-winner-tag.p2w { background: rgba(245,108,61,0.15); color: var(--p2); }
+  .round-winner-tag.tie { background: rgba(255,255,255,0.08); color: var(--white); }
+  .round-next-info { font-size: 11px; letter-spacing: 0.22em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 24px; }
+  .btn-next-round {
+    background: var(--white); color: var(--bg); border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.12em;
+    padding: 15px 48px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
+  }
+  .btn-next-round:active { transform: scale(0.96); }
+
+  /* ── CHAL FINAL ── */
+  #chalFinal { background: var(--bg); gap: 0; padding: 32px; }
+  .final-crown { font-size: 56px; margin-bottom: 12px; }
+  .final-winner-label { font-size: 11px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .final-winner-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 16vw, 88px);
+    letter-spacing: 0.1em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .final-winner-name.p1 { color: var(--p1); }
+  .final-winner-name.p2 { color: var(--p2); }
+  .final-winner-name.tie { color: var(--white); }
+  .final-wins-label { font-size: 12px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 36px; }
+  .final-score-breakdown {
+    display: flex; gap: 28px; margin-bottom: 40px;
+  }
+  .final-score-card {
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 110px;
+  }
+  .fsc-name { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
+  .fsc-name.p1 { color: var(--p1); }
+  .fsc-name.p2 { color: var(--p2); }
+  .fsc-best {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px; letter-spacing: 0.05em; line-height: 1;
+  }
+  .fsc-best.p1 { color: var(--p1); }
+  .fsc-best.p2 { color: var(--p2); }
+  .fsc-sub { font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-top: 3px; }
+  .fsc-wins {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--muted);
+  }
+  .final-actions { display: flex; gap: 14px; }
+  .btn-rematch {
+    background: var(--amber); color: #0a0a0a; border: none;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em;
+    padding: 14px 40px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
+  }
+  .btn-rematch:active { transform: scale(0.96); }
+</style>
+</head>
+<body>
+
+<!-- SCORE BAR (shown during challenge rounds) -->
+<div class="chal-score-bar hidden" id="chalScoreBar">
+  <div class="score-half p1" id="scoreBarP1">
+    <span id="sbName1">P1</span>
+    <div class="score-pips" id="sbPips1"></div>
+  </div>
+  <div class="score-half p2" id="scoreBarP2">
+    <div class="score-pips" id="sbPips2"></div>
+    <span id="sbName2">P2</span>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="home">
+  <div class="title-block">
+    <h1>REFLEX</h1>
+    <p>How fast are you?</p>
+  </div>
+  <div class="best-display" id="bestDisplay">Best — — —</div>
+  <div class="home-buttons">
+    <button class="btn-solo" id="btnStart">SOLO PLAY</button>
+    <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
+  </div>
+</div>
+
+<!-- COUNTDOWN -->
+<div class="screen hidden" id="countdown">
+  <div class="countdown-context" id="countContext"></div>
+  <div class="countdown-label">Get ready</div>
+  <div class="countdown-num" id="countNum">3</div>
+</div>
+
+<!-- WAIT -->
+<div class="screen hidden" id="wait">
+  <div class="wait-player-tag" id="waitPlayerTag"></div>
+  <div class="wait-icon">🔴</div>
+  <div class="wait-text">WAIT</div>
+  <div class="wait-sub">Don't tap yet...</div>
+</div>
+
+<!-- TAP -->
+<div class="screen hidden" id="tap">
+  <div class="tap-text">TAP!</div>
+</div>
+
+<!-- EARLY -->
+<div class="screen hidden" id="early">
+  <div class="early-icon">⚡</div>
+  <div class="early-text">TOO SOON</div>
+  <div class="early-sub">Wait for green</div>
+  <button class="btn-retry" id="btnEarlyRetry">TRY AGAIN</button>
+</div>
+
+<!-- SLOW -->
+<div class="screen hidden" id="slow">
+  <div class="early-icon">🐢</div>
+  <div class="early-text" style="color:var(--amber)">TOO SLOW</div>
+  <div class="early-sub">Under 1000ms next time</div>
+  <button class="btn-retry" id="btnSlowContinue">CONTINUE</button>
+</div>
+
+<!-- RESULT (solo) -->
+<div class="screen hidden" id="result">
+  <div class="result-label">Your time</div>
+  <div class="result-time" id="resultTime">000</div>
+  <div class="result-unit">milliseconds avg</div>
+  <div class="result-unit" style="font-size:10px;margin-top:-10px;opacity:0.4;">best 5 of 6 taps · latency adjusted −20ms</div>
+  <div class="grade-caption" id="resultCaption">you have the reaction time of a</div>
+  <div class="result-grade" id="resultGrade"></div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val" id="statBest">—</div><div class="stat-lbl">Best Avg</div></div>
+    <div class="stat"><div class="stat-val" id="statAvg">—</div><div class="stat-lbl">Average</div></div>
+    <div class="stat"><div class="stat-val" id="statStreak">0</div><div class="stat-lbl">Streak</div></div>
+  </div>
+  <div class="result-actions">
+    <button class="btn-retry" id="btnRetry">AGAIN</button>
+    <button class="btn-home" id="btnHome">HOME</button>
+  </div>
+</div>
+
+<!-- CHALLENGE SETUP -->
+<div class="screen hidden" id="chalSetup">
+  <div class="chal-title">CHALLENGE</div>
+  <div class="chal-sub">Best of 3 · Pass the phone</div>
+  <div class="player-inputs">
+    <div class="player-input-row">
+      <div class="player-dot p1-dot"></div>
+      <input class="player-input" id="p1Name" type="text" placeholder="Player 1" maxlength="12" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <div class="player-input-row">
+      <div class="player-dot p2-dot"></div>
+      <input class="player-input" id="p2Name" type="text" placeholder="Player 2" maxlength="12" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+  </div>
+  <button class="btn-begin" id="btnBegin">LET'S GO</button>
+  <button class="btn-back" id="btnChalBack">← Back</button>
+</div>
+
+<!-- CHALLENGE ROUND RESULT -->
+<div class="screen hidden" id="chalRound">
+  <div class="round-player-name" id="crPlayerName"></div>
+  <div class="round-time" id="crTime">000</div>
+  <div class="round-unit">milliseconds avg</div>
+  <div class="round-unit" style="font-size:10px;margin-top:-8px;opacity:0.4;">best 5 of 6 taps · latency adjusted −20ms</div>
+  <div class="grade-caption">you have the reaction time of a</div>
+  <div class="round-grade" id="crGrade"></div>
+  <div class="round-winner-tag hidden" id="crWinnerTag"></div>
+  <div class="round-next-info" id="crNextInfo"></div>
+  <button class="btn-next-round" id="btnNextRound">CONTINUE</button>
+</div>
+
+<!-- CHALLENGE FINAL -->
+<div class="screen hidden" id="chalFinal">
+  <div class="final-crown" id="finalCrown">🏆</div>
+  <div class="final-winner-label" id="finalWinnerLabel">Winner</div>
+  <div class="final-winner-name" id="finalWinnerName"></div>
+  <div class="final-wins-label" id="finalWinsLabel"></div>
+  <div class="final-score-breakdown">
+    <div class="final-score-card">
+      <div class="fsc-name p1" id="fcName1">P1</div>
+      <div class="fsc-best p1" id="fcBest1">—</div>
+      <div class="fsc-sub">Avg</div>
+      <div class="fsc-wins" id="fcWins1"></div>
+    </div>
+    <div class="final-score-card">
+      <div class="fsc-name p2" id="fcName2">P2</div>
+      <div class="fsc-best p2" id="fcBest2">—</div>
+      <div class="fsc-sub">Avg</div>
+      <div class="fsc-wins" id="fcWins2"></div>
+    </div>
+  </div>
+  <div class="final-actions">
+    <button class="btn-rematch" id="btnRematch">REMATCH</button>
+    <button class="btn-home" id="btnFinalHome">HOME</button>
+  </div>
+</div>
+
+<script>
+// ── SOUND ENGINE ──
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  return audioCtx;
+}
+
+function playTone(freq, type, duration, gainVal, startTime, rampDown = true) {
+  const ctx  = getAudioCtx();
+  const osc  = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(gainVal, startTime);
+  if (rampDown) gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.start(startTime);
+  osc.stop(startTime + duration + 0.01);
+}
+
+function soundCountdownBeep(isFinal) {
+  const ctx = getAudioCtx();
+  const t   = ctx.currentTime;
+  playTone(isFinal ? 880 : 440, 'sine', 0.12, 0.3, t);
+}
+
+function soundEarly() {
+  const ctx = getAudioCtx();
+  const t   = ctx.currentTime;
+  playTone(120, 'sawtooth', 0.4, 0.4, t);
+}
+
+function soundSlow() {
+  const ctx = getAudioCtx();
+  const t   = ctx.currentTime;
+  playTone(180, 'sawtooth', 0.35, 0.35, t);
+  playTone(140, 'sawtooth', 0.35, 0.25, t + 0.15);
+}
+
+function soundGoodResult() {
+  const ctx = getAudioCtx();
+  const t   = ctx.currentTime;
+  playTone(660, 'sine', 0.12, 0.25, t);
+  playTone(880, 'sine', 0.18, 0.25, t + 0.13);
+}
+
+function soundBadResult() {
+  const ctx = getAudioCtx();
+  const t   = ctx.currentTime;
+  playTone(260, 'sine', 0.3, 0.25, t);
+}
+
+// ── LATENCY OFFSET ──
+// Compensates for display + touch digitizer latency. Conservative estimate.
+const LATENCY_OFFSET = 20; // ms
+
+// ── GRADES (15, ordered best → worst) ──
+const GRADES = [
+  { max: 200,  emoji: '🤖', label: 'CYBORG',             cls: 'grade-s' },
+  { max: 210,  emoji: '🏎️', label: 'F1 DRIVER',           cls: 'grade-s' },
+  { max: 220,  emoji: '🐍', label: 'VIPER REFLEXES',      cls: 'grade-s' },
+  { max: 233,  emoji: '🎮', label: 'PRO GAMER',           cls: 'grade-a' },
+  { max: 248,  emoji: '☕', label: 'HAD THEIR COFFEE',    cls: 'grade-a' },
+  { max: 263,  emoji: '🦅', label: 'EAGLE-EYED',          cls: 'grade-a' },
+  { max: 280,  emoji: '🚶', label: 'PLEASANT STROLL',     cls: 'grade-b' },
+  { max: 300,  emoji: '🐕', label: 'LABRADOR ENERGY',     cls: 'grade-b' },
+  { max: 323,  emoji: '🥱', label: 'NEEDS MORE SLEEP',    cls: 'grade-b' },
+  { max: 350,  emoji: '🦥', label: 'SLOTH',               cls: 'grade-c' },
+  { max: 371,  emoji: '🍺', label: 'DRUNKEN SAILOR',      cls: 'grade-c' },
+  { max: 386,  emoji: '🦕', label: 'FOSSIL REFLEXES',     cls: 'grade-d' },
+  { max: 393,  emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
+  { max: 400,  emoji: '🧓', label: 'DIAL-UP CONNECTION',  cls: 'grade-d' },
+  { max: Infinity, emoji: '🐢', label: 'GEOLOGICAL EPOCH', cls: 'grade-f' },
+];
+
+function getGrade(ms) {
+  return GRADES.find(g => ms < g.max);
+}
+
+// ── SCREENS ──
+const allScreens = ['home','countdown','wait','tap','early','slow','result','chalSetup','chalRound','chalFinal'];
+const scrEls = {};
+allScreens.forEach(id => scrEls[id] = document.getElementById(id));
+
+function show(name) {
+  allScreens.forEach(id => scrEls[id].classList.toggle('hidden', id !== name));
+}
+
+// ── PERSISTENT STATE ──
+let history = JSON.parse(localStorage.getItem('rfx_hist') || '[]');
+let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
+
+// ── GAME STATE ──
+let tapStartTime = 0;
+let waitTimeout  = null;
+let mode = 'solo'; // 'solo' | 'challenge'
+
+// Set state — 3 taps per set, average is the score
+const TAPS_PER_SET = 6;
+let setTaps = [];        // ms times collected so far in current set
+let setTapNum = 0;       // which tap we're on (0,1,2)
+
+// Challenge state
+let chalPlayers = ['Player 1', 'Player 2'];
+let chalScores  = [0, 0];       // wins per player
+let chalTimes   = [[], []];     // average times per round per player
+let chalRound   = 0;            // 0-based round index (0,1,2)
+let chalTurn    = 0;            // which player's turn (0 or 1)
+let chalRoundResults = [];      // {player, avg} for current round (both players)
+
+const scoreBar = document.getElementById('chalScoreBar');
+
+// ── UTILS ──
+function updateBestDisplay() {
+  const best = history.length ? Math.min(...history) : null;
+  const el = document.getElementById('bestDisplay');
+  el.innerHTML = best ? `Best <span>${best}ms</span>` : 'Best — — —';
+}
+
+function applyGradeStyle(el, ms) {
+  const g = getGrade(ms);
+  el.classList.remove('grade-s', 'grade-a', 'grade-b', 'grade-c', 'grade-d', 'grade-f');
+  el.classList.add(g.cls);
+  return g;
+}
+
+function timeColor(ms) {
+  if (ms < 200) return 'var(--green)';
+  if (ms < 260) return 'var(--blue)';
+  if (ms < 340) return 'var(--amber)';
+  if (ms < 500) return 'var(--white)';
+  return 'var(--red)';
+}
+
+// ── SCORE BAR ──
+function updateScoreBar() {
+  document.getElementById('sbName1').textContent = chalPlayers[0];
+  document.getElementById('sbName2').textContent = chalPlayers[1];
+  [0,1].forEach(p => {
+    const pipsEl = document.getElementById(`sbPips${p+1}`);
+    pipsEl.innerHTML = '';
+    for (let i = 0; i < 2; i++) {
+      const d = document.createElement('div');
+      d.className = 'pip' + (i < chalScores[p] ? ' won' : '');
+      pipsEl.appendChild(d);
+    }
+  });
+  // highlight active player
+  document.getElementById('scoreBarP1').classList.toggle('active-player', chalTurn !== 0 || mode !== 'challenge');
+  document.getElementById('scoreBarP2').classList.toggle('active-player', chalTurn !== 1 || mode !== 'challenge');
+}
+
+function showScoreBar(visible) {
+  scoreBar.classList.toggle('hidden', !visible);
+}
+
+// ── COUNTDOWN ──
+function startCountdown(context) {
+  show('countdown');
+  document.getElementById('countContext').textContent = context || '';
+  let n = 3;
+  const numEl = document.getElementById('countNum');
+  numEl.textContent = n;
+  soundCountdownBeep(false);
+  const interval = setInterval(() => {
+    n--;
+    if (n > 0) {
+      numEl.textContent = n;
+      numEl.style.animation = 'none';
+      void numEl.offsetWidth;
+      numEl.style.animation = '';
+      soundCountdownBeep(false);
+    } else {
+      clearInterval(interval);
+      soundCountdownBeep(true);
+      startWait();
+    }
+  }, 1000);
+}
+
+function startWait() {
+  tapStartTime = 0; // reset so touchstart guard works
+  show('wait');
+  if (mode === 'challenge') {
+    document.getElementById('waitPlayerTag').textContent =
+      `${chalPlayers[chalTurn]} — Round ${chalRound + 1}`;
+  } else {
+    document.getElementById('waitPlayerTag').textContent = '';
+  }
+  const delay = 400 + Math.random() * 3100; // 0.4s–3.5s
+  waitTimeout = setTimeout(showTap, delay);
+}
+
+// ── WAIT → EARLY ──
+scrEls.wait.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (!waitTimeout) return;
+  clearTimeout(waitTimeout);
+  waitTimeout = null;
+  // Reset the current set — early tap loses the whole set
+  setTaps   = [];
+  setTapNum = 0;
+  soundEarly();
+  if (mode === 'solo') {
+    streak = 0;
+    localStorage.setItem('rfx_streak', streak);
+  } else {
+    // In challenge, early tap loses the round for that player
+    const loser  = chalTurn;
+    const winner = 1 - chalTurn;
+    chalScores[winner]++;
+    updateScoreBar();
+    // Show early screen with challenge context flagged
+    document.getElementById('early').dataset.chalEarly = '1';
+  }
+  show('early');
+});
+
+// ── SHOW TAP ──
+// Start the clock only after the green screen has actually been painted.
+// Two nested rAFs: first rAF = layout/style flush, second rAF = paint complete.
+function showTap() {
+  show('tap');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      tapStartTime = performance.now();
+    });
+  });
+}
+
+// ── TAP ──
+// touchstart for iOS (fires earlier than pointerdown).
+// mousedown for desktop mouse clicks.
+// keydown (any key) for keyboard users.
+// touchstart calls preventDefault to stop the synthetic mousedown
+// that would otherwise double-fire on mobile.
+
+function handleTap(e) {
+  if (!tapStartTime) return; // guard: fired before paint completed
+  const ms = Math.max(1, Math.round(performance.now() - tapStartTime) - LATENCY_OFFSET);
+  tapStartTime = 0; // prevent double-fire
+
+  // >1000ms = failure — same consequence as early tap
+  if (ms > 1000) {
+    setTaps   = [];
+    setTapNum = 0;
+    soundSlow();
+    if (mode === 'solo') {
+      streak = 0;
+      localStorage.setItem('rfx_streak', streak);
+      show('slow');
+    } else {
+      const winner = 1 - chalTurn;
+      chalScores[winner]++;
+      updateScoreBar();
+      document.getElementById('slow').dataset.chalSlow = '1';
+      show('slow');
+    }
+    return;
+  }
+
+  setTaps.push(ms);
+  setTapNum++;
+
+  if (setTapNum < TAPS_PER_SET) {
+    // More taps needed — go straight to next wait (no countdown)
+    startWait();
+  } else {
+    // All 6 done — drop worst tap, average the top 5
+    const sorted = [...setTaps].sort((a, b) => a - b);
+    const top5   = sorted.slice(0, 5);
+    const avg    = Math.round(top5.reduce((a, b) => a + b, 0) / 5);
+    setTaps   = [];
+    setTapNum = 0;
+    if (mode === 'solo') soloResult(avg);
+    else challengeResult(avg);
+  }
+}
+
+scrEls.tap.addEventListener('touchstart', e => {
+  e.preventDefault(); // stops subsequent mousedown firing on mobile
+  handleTap(e);
+}, { passive: false });
+
+scrEls.tap.addEventListener('mousedown', handleTap);
+
+document.addEventListener('keydown', e => {
+  if (scrEls.tap.classList.contains('hidden')) return;
+  handleTap(e);
+});
+
+// ── SOLO RESULT ──
+// avg = average of the 3 taps in the set
+function soloResult(avg) {
+  history.push(avg);
+  if (history.length > 20) history = history.slice(-20);
+  localStorage.setItem('rfx_hist', JSON.stringify(history));
+  streak++;
+  localStorage.setItem('rfx_streak', streak);
+
+  const best    = Math.min(...history);
+  const allAvg  = Math.round(history.reduce((a,b) => a+b, 0) / history.length);
+
+  const timeEl  = document.getElementById('resultTime');
+  const gradeEl = document.getElementById('resultGrade');
+  timeEl.textContent = avg;
+  timeEl.style.color = timeColor(avg);
+  const g = applyGradeStyle(gradeEl, avg);
+
+  if (avg === best && history.length > 1) {
+    document.getElementById('resultCaption').textContent = '🏆 new best! you have the reaction time of a';
+  } else {
+    document.getElementById('resultCaption').textContent = 'you have the reaction time of a';
+  }
+  gradeEl.textContent = `${g.emoji} ${g.label}`;
+
+  document.getElementById('statBest').textContent   = best + 'ms';
+  document.getElementById('statAvg').textContent    = allAvg + 'ms';
+  document.getElementById('statStreak').textContent = streak;
+  if (avg < 350) soundGoodResult(); else soundBadResult();
+  show('result');
+}
+
+// ── CHALLENGE RESULT ──
+// avg = average of the 3 taps in the set
+function challengeResult(avg) {
+  chalRoundResults.push({ player: chalTurn, avg });
+  chalTimes[chalTurn].push(avg);
+
+  // Show per-player round result
+  document.getElementById('crPlayerName').textContent = chalPlayers[chalTurn];
+  const crTimeEl = document.getElementById('crTime');
+  crTimeEl.textContent = avg;
+  crTimeEl.style.color = timeColor(avg);
+
+  const crGradeEl = document.getElementById('crGrade');
+  const g = applyGradeStyle(crGradeEl, avg);
+  crGradeEl.textContent = `${g.emoji} ${g.label}`;
+
+  const winnerTag  = document.getElementById('crWinnerTag');
+  const nextInfo   = document.getElementById('crNextInfo');
+  const nextBtn    = document.getElementById('btnNextRound');
+  winnerTag.className = 'round-winner-tag hidden';
+
+  if (chalRoundResults.length === 1) {
+    // First player done — pass to second
+    nextInfo.textContent = `Now pass to ${chalPlayers[1 - chalTurn]}`;
+    nextBtn.textContent  = 'PASS PHONE';
+    chalTurn = 1 - chalTurn;
+    updateScoreBar();
+  } else {
+    // Both done — determine round winner by lower average
+    const r0 = chalRoundResults[0];
+    const r1 = chalRoundResults[1];
+    const roundWinner = r0.avg < r1.avg ? r0.player : (r1.avg < r0.avg ? r1.player : -1);
+
+    winnerTag.classList.remove('hidden');
+    if (roundWinner === -1) {
+      winnerTag.className = 'round-winner-tag tie';
+      winnerTag.textContent = '🤝 TIE ROUND';
+      soundBadResult();
+    } else {
+      chalScores[roundWinner]++;
+      winnerTag.className = `round-winner-tag p${roundWinner+1}w`;
+      winnerTag.textContent = `${chalPlayers[roundWinner]} wins the round!`;
+      soundGoodResult();
+    }
+    updateScoreBar();
+
+    const matchOver = chalScores[0] >= 2 || chalScores[1] >= 2 || chalRound >= 2;
+    if (matchOver) {
+      nextInfo.textContent = 'See final results';
+      nextBtn.textContent  = 'FINAL SCORE';
+      nextBtn.dataset.next = 'final';
+    } else {
+      chalRound++;
+      chalRoundResults = [];
+      chalTurn = 0;
+      nextInfo.textContent = `Round ${chalRound + 1} — ${chalPlayers[0]} goes first`;
+      nextBtn.textContent  = 'NEXT ROUND';
+      nextBtn.dataset.next = 'round';
+    }
+  }
+
+  show('chalRound');
+}
+
+// ── NEXT ROUND BTN ──
+document.getElementById('btnNextRound').addEventListener('click', () => {
+  const next = document.getElementById('btnNextRound').dataset.next;
+  if (next === 'final') {
+    showFinal();
+  } else if (next === 'round') {
+    // start countdown for next round
+    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
+  } else {
+    // pass phone to next player mid-round
+    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
+  }
+});
+
+// ── FINAL ──
+function showFinal() {
+  showScoreBar(false);
+  const w0 = chalScores[0], w1 = chalScores[1];
+  const crown  = document.getElementById('finalCrown');
+  const nameEl = document.getElementById('finalWinnerName');
+  const lblEl  = document.getElementById('finalWinnerLabel');
+  const winsEl = document.getElementById('finalWinsLabel');
+
+  if (w0 > w1) {
+    crown.textContent = '🏆';
+    lblEl.textContent = 'Winner';
+    nameEl.textContent = chalPlayers[0];
+    nameEl.className = 'final-winner-name p1';
+    winsEl.textContent = `${w0} – ${w1}`;
+  } else if (w1 > w0) {
+    crown.textContent = '🏆';
+    lblEl.textContent = 'Winner';
+    nameEl.textContent = chalPlayers[1];
+    nameEl.className = 'final-winner-name p2';
+    winsEl.textContent = `${w1} – ${w0}`;
+  } else {
+    crown.textContent = '🤝';
+    lblEl.textContent = 'It\'s a tie!';
+    nameEl.textContent = 'DEAD HEAT';
+    nameEl.className = 'final-winner-name tie';
+    winsEl.textContent = `${w0} – ${w1}`;
+  }
+
+  [0,1].forEach(p => {
+    const times   = chalTimes[p];
+    const roundAvg = times.length
+      ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+      : null;
+    document.getElementById(`fcName${p+1}`).textContent = chalPlayers[p];
+    document.getElementById(`fcBest${p+1}`).textContent = roundAvg ? roundAvg + 'ms' : '—';
+    document.getElementById(`fcWins${p+1}`).textContent = `${chalScores[p]} win${chalScores[p] !== 1 ? 's' : ''}`;
+  });
+
+  show('chalFinal');
+}
+
+// ── HOME BUTTONS ──
+document.getElementById('btnStart').addEventListener('click', () => {
+  mode = 'solo';
+  showScoreBar(false);
+  startCountdown('');
+});
+
+document.getElementById('btnChallenge').addEventListener('click', () => {
+  show('chalSetup');
+});
+
+document.getElementById('btnBegin').addEventListener('click', () => {
+  const n1 = document.getElementById('p1Name').value.trim() || 'Player 1';
+  const n2 = document.getElementById('p2Name').value.trim() || 'Player 2';
+  chalPlayers   = [n1, n2];
+  chalScores    = [0, 0];
+  chalTimes     = [[], []];
+  chalRound     = 0;
+  chalTurn      = 0;
+  chalRoundResults = [];
+  setTaps = []; setTapNum = 0;
+  mode = 'challenge';
+  updateScoreBar();
+  showScoreBar(true);
+  document.getElementById('btnNextRound').dataset.next = '';
+  startCountdown(`Round 1 · ${chalPlayers[0]}`);
+});
+
+document.getElementById('btnChalBack').addEventListener('click', () => {
+  show('home');
+});
+
+document.getElementById('btnRetry').addEventListener('click', () => {
+  setTaps = []; setTapNum = 0;
+  mode = 'solo'; showScoreBar(false); startCountdown('');
+});
+
+document.getElementById('btnHome').addEventListener('click', () => {
+  showScoreBar(false); updateBestDisplay(); show('home');
+});
+
+document.getElementById('btnSlowContinue').addEventListener('click', () => {
+  const chalSlow = document.getElementById('slow').dataset.chalSlow === '1';
+  document.getElementById('slow').dataset.chalSlow = '';
+
+  if (mode === 'solo') {
+    setTaps = []; setTapNum = 0;
+    startCountdown('');
+  } else if (chalSlow) {
+    chalRoundResults = [];
+    chalTurn = 0;
+    const matchOver = chalScores[0] >= 2 || chalScores[1] >= 2 || chalRound >= 2;
+    if (matchOver) {
+      showFinal();
+    } else {
+      chalRound++;
+      startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
+    }
+  } else {
+    setTaps = []; setTapNum = 0;
+    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
+  }
+});
+
+document.getElementById('btnEarlyRetry').addEventListener('click', () => {
+  const chalEarly = document.getElementById('early').dataset.chalEarly === '1';
+  document.getElementById('early').dataset.chalEarly = '';
+
+  if (mode === 'solo') {
+    setTaps = []; setTapNum = 0;
+    startCountdown('');
+  } else if (chalEarly) {
+    // Round was forfeited — check if match over, else go to round result
+    chalRoundResults = [];
+    chalTurn = 0;
+    const matchOver = chalScores[0] >= 2 || chalScores[1] >= 2 || chalRound >= 2;
+    if (matchOver) {
+      showFinal();
+    } else {
+      chalRound++;
+      startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
+    }
+  } else {
+    setTaps = []; setTapNum = 0;
+    startCountdown(`Round ${chalRound + 1} · ${chalPlayers[chalTurn]}`);
+  }
+});
+
+document.getElementById('btnRematch').addEventListener('click', () => {
+  setTaps = []; setTapNum = 0;
+  chalScores    = [0, 0];
+  chalTimes     = [[], []];
+  chalRound     = 0;
+  chalTurn      = 0;
+  chalRoundResults = [];
+  updateScoreBar();
+  showScoreBar(true);
+  startCountdown(`Round 1 · ${chalPlayers[0]}`);
+});
+
+document.getElementById('btnFinalHome').addEventListener('click', () => {
+  showScoreBar(false); updateBestDisplay(); show('home');
+});
+
+// ── INIT ──
+updateBestDisplay();
+show('home');
+
+// ── PWA BOOTSTRAP ──
+// Generates a manifest and service worker entirely from JS blobs so the
+// game installs as a home-screen app when opened in Safari and added via
+// Share → Add to Home Screen.
+
+(function initPWA() {
+  // 1. Draw the app icon on a canvas and use it as the touch icon
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, 512, 512);
+  ctx.beginPath();
+  ctx.arc(256, 256, 200, 0, Math.PI * 2);
+  ctx.fillStyle = '#00e676';
+  ctx.fill();
+  ctx.fillStyle = '#0a0a0a';
+  ctx.font = 'bold 88px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('RFX', 256, 256);
+  const iconDataUrl = canvas.toDataURL('image/png');
+
+  // Apply as apple-touch-icon
+  document.getElementById('appleTouchIcon').href = iconDataUrl;
+
+  // 2. Inject a blob manifest so Safari sees a proper PWA name + icon
+  const manifest = {
+    name: 'REFLEX',
+    short_name: 'REFLEX',
+    display: 'fullscreen',
+    orientation: 'portrait',
+    background_color: '#0a0a0a',
+    theme_color: '#0a0a0a',
+    icons: [{ src: iconDataUrl, sizes: '512x512', type: 'image/png' }]
+  };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  document.getElementById('pwaManifest').href = URL.createObjectURL(manifestBlob);
+
+  // 3. Register an inline service worker for offline support
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE = 'reflex-v1';
+      self.addEventListener('install', e => { self.skipWaiting(); });
+      self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });
+      self.addEventListener('fetch', e => {
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+      });
+    `;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    navigator.serviceWorker.register(URL.createObjectURL(swBlob), { scope: '/' })
+      .catch(() => {}); // silently fail — game still works without SW
+  }
+})();
+
+</script>
+</body>
+</html>
