@@ -461,7 +461,7 @@
 <div class="screen hidden" id="slow">
   <div class="early-icon">🐢</div>
   <div class="early-text" style="color:var(--amber)">TOO SLOW</div>
-  <div class="early-sub">Under 1000ms next time</div>
+  <div class="early-sub">Under 1500ms next time</div>
   <button class="btn-retry" id="btnSlowContinue">CONTINUE</button>
 </div>
 
@@ -820,7 +820,7 @@ function showTap() {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
       startReactionTone();
-      slowTimeout = setTimeout(triggerSlow, 1000);
+      slowTimeout = setTimeout(triggerSlow, 1500);
     });
   });
 }
@@ -828,7 +828,6 @@ function showTap() {
 // ── TAP ──
 // touchstart for iOS (fires earlier than pointerdown).
 // mousedown for desktop mouse clicks.
-// keydown (any key) for keyboard users.
 // touchstart calls preventDefault to stop the synthetic mousedown
 // that would otherwise double-fire on mobile.
 
@@ -840,8 +839,8 @@ function handleTap(e) {
   const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0; // prevent double-fire
 
-  // >1000ms = failure — same consequence as early tap
-  if (ms > 1000) {
+  // >1500ms = failure — same consequence as early tap
+  if (ms > 1500) {
     setTaps   = [];
     setTapNum = 0;
     soundSlow();
@@ -883,11 +882,6 @@ scrEls.tap.addEventListener('touchstart', e => {
 }, { passive: false });
 
 scrEls.tap.addEventListener('mousedown', handleTap);
-
-document.addEventListener('keydown', e => {
-  if (scrEls.tap.classList.contains('hidden')) return;
-  handleTap(e);
-});
 
 // ── SOLO RESULT ──
 // avg = average of the 3 taps in the set
@@ -1144,6 +1138,15 @@ document.getElementById('btnRematch').addEventListener('click', () => {
 document.getElementById('btnFinalHome').addEventListener('click', () => {
   showScoreBar(false); updateBestDisplay(); show('home');
 });
+
+// ── BLOCK ALL KEYBOARD INPUT ──
+// Buttons respond to Space/Enter natively; prevent that at capture phase.
+// Allow normal typing in the player-name input fields only.
+function blockKeyboard(e) {
+  if (e.target.tagName !== 'INPUT') e.preventDefault();
+}
+document.addEventListener('keydown', blockKeyboard, { capture: true });
+document.addEventListener('keyup',   blockKeyboard, { capture: true });
 
 // ── INIT ──
 updateBestDisplay();
