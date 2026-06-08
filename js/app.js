@@ -378,18 +378,20 @@ function randomizeTapsPerSet() {
   crypto.getRandomValues(buf);
   tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.49);
 
-  // Guarantee at least one TAP! within the first 6 slots — if those are all
-  // "don't tap", flip a random one of them to TAP!. (A set is 6 or 7 long, so
-  // this ensures the player always gets a real tap early in every set.)
-  // Use fresh entropy for the index rather than reusing buf, which was already
-  // consumed to build the sequence above.
-  const head = Math.min(6, TAPS_PER_SET);
-  if (tapSequence.slice(0, head).every(v => v)) {
-    tapSequence[Math.floor(Math.random() * head)] = false;
-  }
   // Guarantee at least one DON'T TAP! — if none exist, flip a random one.
   if (tapSequence.every(v => !v)) {
     tapSequence[Math.floor(Math.random() * TAPS_PER_SET)] = true;
+  }
+
+  // HIGHEST-PRIORITY CONSTRAINT — applied LAST so nothing can override it:
+  // the first 3 slots must NOT all be "don't tap". If they are, flip a random
+  // one of those first 3 to a real TAP!. This is stricter than (and supersedes)
+  // any "tap somewhere early" rule, and runs after the don't-tap guarantee so
+  // that step can never reintroduce an all-don't-tap opening.
+  // (A set is always 6 or 7 long, so the first 3 slots always exist.)
+  const HEAD = 3;
+  if (tapSequence.slice(0, HEAD).every(v => v)) {
+    tapSequence[Math.floor(Math.random() * HEAD)] = false;
   }
 }
 
@@ -576,7 +578,9 @@ function soloResult(avg, taps) {
   timeEl.textContent = avg;
   timeEl.style.color = timeColor(avg);
   const g = applyGradeStyle(gradeEl, avg);
-  document.getElementById('resultBreakdown').textContent = formatBreakdown(taps);
+  // Minimalist: list each recorded tap time, comma-separated (no average equation).
+  // No unit — the large averaged time above already shows "ms".
+  document.getElementById('resultBreakdown').textContent = taps.join(', ');
 
   if (avg === best && history.length > 1) {
     document.getElementById('resultCaption').textContent = '🏆 new best! Your Reflex rating is:';
