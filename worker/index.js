@@ -3,7 +3,9 @@
 // Deploy: wrangler deploy
 //
 // Routes:
-//   GET  /scores       → top 10 entries [{tag, ms}, ...]
+//   GET  /scores       → top 20 ordered entries [{tag, ms, at}, ...]
+//   GET  /standing?tag=X&ms=Y → would-this-place check, no write:
+//                         { qualifies, rank } where rank is 1..20 or "20+"
 //   POST /score        → submit {tag, ms}, returns 200 or 400
 //   DELETE /score/:tag?key=SECRET  → admin delete all entries for a tag
 
@@ -11,12 +13,16 @@
 // It is never stored in code or committed to git.
 //
 // KV layout:
-//   leaderboard        → sorted index array [{tag, ms}, ...] (fast read for GET)
+//   leaderboard        → sorted index array [{tag, ms, at}, ...], up to MAX_STORED.
+//                        Only the first DISPLAY_SIZE are kept strictly ordered for
+//                        display; the remainder are the pool of qualifying scores
+//                        (kept so we can trim to the worst and rank "20+" players).
 //   score:ABCDE        → that tag's current best, JSON {tag, ms, at} (one key per player)
-const KV_KEY     = 'leaderboard';
-const SCORE_PFX  = 'score:';
-const RL_PFX     = 'rl:';
-const MAX_STORED = 10;
+const KV_KEY      = 'leaderboard';
+const SCORE_PFX   = 'score:';
+const RL_PFX      = 'rl:';
+const MAX_STORED  = 100; // total best-per-tag scores retained (top 100)
+const DISPLAY_SIZE = 20; // how many ordered rows /scores returns for display
 const RL_WINDOW_MS = 30_000; // min gap between accepted POSTs for the same tag
 const RL_TTL_SEC   = 60;     // KV min TTL is 60s; we gate on timestamp, key self-cleans
 
@@ -33,11 +39,57 @@ export default {
 
     if (method === 'OPTIONS') return new Response(null, { headers: cors });
 
-    // GET /scores
+    // GET /scores → top DISPLAY_SIZE ordered entries
     if (method === 'GET' && url.pathname === '/scores') {
       const raw     = await env.KV.get(KV_KEY);
       const entries = raw ? JSON.parse(raw) : [];
-      return Response.json(entries.slice(0, 10), { headers: cors });
+      return Response.json(entries.slice(0, DISPLAY_SIZE), { headers: cors });
+    }
+
+    // GET /standing?tag=X&ms=Y → would this ms place in the top 100? no write.
+    //   { qualifies: bool, rank: 1..DISPLAY_SIZE | "20+" | null }
+    // qualifies is true when the board has a free slot (under MAX_STORED) or
+    // ms beats the current worst stored entry — i.e. it would make the top 100.
+    // When it qualifies, rank is its position among the top DISPLAY_SIZE if it
+    // lands there, otherwise the "20+" sentinel (we only order the top 20).
+    if (method === 'GET' && url.pathname === '/standing') {
+      // tag is optional: when present we account for the player's own prior best
+      // (only an improvement places); when absent we judge the raw ms alone.
+      const tagRaw = (url.searchParams.get('tag') || '').toUpperCase();
+      const tag    = tagRaw && /^[A-Z]{1,6}$/.test(tagRaw) ? tagRaw : null;
+      const ms     = Number(url.searchParams.get('ms'));
+      if (tagRaw && !tag) return bad('invalid tag', cors);
+      if (!Number.isInteger(ms) || ms < 100 || ms > 999)
+        return bad('ms must be an integer between 100 and 999', cors);
+
+      const raw     = await env.KV.get(KV_KEY);
+      const entries = raw ? JSON.parse(raw) : [];
+
+      // If a tag is given, only an improvement on its own best can place.
+      let isBest = true;
+      if (tag) {
+        const prevRaw = await env.KV.get(SCORE_PFX + tag);
+        const prevMs  = prevRaw ? JSON.parse(prevRaw).ms : null;
+        isBest = prevMs === null || ms < prevMs;
+      }
+
+      let qualifies, rank = null;
+      if (!isBest) {
+        qualifies = false;
+      } else if (entries.length < MAX_STORED) {
+        qualifies = true;
+      } else {
+        const worst = Math.max(...entries.map(e => e.ms));
+        qualifies = ms < worst;
+      }
+
+      if (qualifies) {
+        // Count strictly-better stored entries (excluding this tag's old row,
+        // which this submission would replace) to find the would-be position.
+        const better = entries.filter(e => e.tag !== tag && e.ms < ms).length;
+        rank = better < DISPLAY_SIZE ? better + 1 : '20+';
+      }
+      return Response.json({ qualifies, rank }, { headers: cors });
     }
 
     // GET /exists?tag=X → { exists: bool }  (is this tag already recorded?)
