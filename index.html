@@ -30,6 +30,31 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+  /* --ls mirrors each element's letter-spacing so the centering fix below can
+     indent by the same amount. Registered as non-inheriting (initial 0) so a
+     parent's letter-spacing never leaks an indent onto unspaced children. */
+  @property --ls {
+    syntax: '<length>';
+    inherits: false;
+    initial-value: 0;
+  }
+
+  /* ── CENTERING FIX ──
+     letter-spacing renders trailing space AFTER the last glyph too, which the
+     browser includes in the element's box — so centered text drifts right by
+     ~half the letter-spacing. Indenting the left edge by one full letter-spacing
+     unit (--ls, set alongside every letter-spacing value above) cancels the
+     trailing space and re-centers the glyphs.
+     Applied per-element via the universal selector so text-indent never inherits
+     a parent's computed length: each element resolves var(--ls) from its OWN
+     letter-spacing, defaulting to 0 when it sets none. --ls is declared with an
+     initial value of 0 so it does not inherit across elements either. */
+  * { text-indent: var(--ls, 0); }
+  /* Left/right-aligned leaderboard cells and the left-aligned name input opt out:
+     their columns are flex-aligned, so the centered-text drift doesn't apply and
+     an indent would only misalign them. */
+  .lb-row, .lb-row *, .player-input { --ls: 0; text-indent: 0; }
+
   html, body {
     height: 100%;
     background: var(--bg);
@@ -71,20 +96,20 @@
   .title-block h1 {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(80px, 22vw, 140px);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.12em; --ls: 0.12em;
     line-height: 1;
     color: var(--white);
   }
   .title-block p {
     font-size: 12px;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.25em; --ls: 0.25em;
     color: var(--text-dim);
     margin-top: 8px;
     text-transform: uppercase;
   }
   .best-display {
     font-size: 12px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.2em; --ls: 0.2em;
     color: var(--text-dim);
     margin-bottom: 28px;
     text-transform: uppercase;
@@ -107,7 +132,7 @@
   .tag-modal-banner {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(20px, 6vw, 30px);
-    letter-spacing: 0.18em;
+    letter-spacing: 0.18em; --ls: 0.18em;
     color: var(--amber);
     text-align: center;
     text-transform: uppercase;
@@ -116,12 +141,12 @@
   .tag-modal-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(36px, 10vw, 56px);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.12em; --ls: 0.12em;
     color: var(--white);
   }
   .tag-modal-sub {
     font-size: 12px;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.22em; --ls: 0.22em;
     color: var(--text-dim);
     text-transform: uppercase;
     text-align: center;
@@ -133,7 +158,7 @@
     color: var(--white);
     font-family: 'Bebas Neue', sans-serif;
     font-size: 38px;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.3em; --ls: 0.3em;
     padding: 14px 20px;
     border-radius: 4px;
     outline: none;
@@ -144,7 +169,7 @@
   .tag-input:focus { border-color: var(--white); }
   .tag-error {
     font-size: 11px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.18em; --ls: 0.18em;
     color: var(--red);
     text-transform: uppercase;
     min-height: 16px;
@@ -155,7 +180,7 @@
     border: none;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 24px;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.15em; --ls: 0.15em;
     padding: 14px 52px;
     cursor: pointer;
     border-radius: 4px;
@@ -168,7 +193,7 @@
     color: var(--muted);
     font-family: 'DM Mono', monospace;
     font-size: 11px;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.12em; --ls: 0.12em;
     text-transform: uppercase;
     cursor: pointer;
     padding: 4px 12px;
@@ -181,7 +206,7 @@
     margin-top: 32px;
     width: 260px;
     font-size: 11px;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.12em; --ls: 0.12em;
     color: var(--text-dim);
   }
   /* Extra clearance above the fixed version footer when all rows show. */
@@ -197,7 +222,7 @@
   .leaderboard.lb-expanded #lbRows::-webkit-scrollbar { display: none; } /* Chrome/Safari */
   .lb-title {
     text-transform: uppercase;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.25em; --ls: 0.25em;
     font-size: 10px;
     color: var(--muted);
     margin-bottom: 6px;
@@ -230,7 +255,7 @@
     color: var(--muted);
     font-family: 'DM Mono', monospace;
     font-size: 9px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.2em; --ls: 0.2em;
     text-transform: uppercase;
     cursor: pointer;
     padding: 4px 8px;
@@ -239,7 +264,7 @@
   .lb-toggle.hidden { display: none; }
 
   .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
-  .version-footer { position: fixed; right: calc(10px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); text-align: right; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; pointer-events: none; z-index: 10; transition: opacity 0.2s ease; }
+  .version-footer { position: fixed; right: calc(10px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); text-align: right; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; --ls: 0.08em; pointer-events: none; z-index: 10; transition: opacity 0.2s ease; }
   .version-footer.hidden { opacity: 0; }
   /* All three home buttons share one size for a uniform stack. */
   .btn-solo, .btn-challenge, .bgm-toggle {
@@ -247,7 +272,7 @@
     box-sizing: border-box;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 22px;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.18em; --ls: 0.18em;
     padding: 14px 0;
     text-align: center;
     border-radius: 4px;
@@ -292,7 +317,7 @@
     position: absolute;
     top: 18%;
     font-size: 12px;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.3em; --ls: 0.3em;
     color: rgba(255,255,255,0.7);
     text-transform: uppercase;
   }
@@ -318,14 +343,14 @@
     z-index: 1;
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.1em; --ls: 0.1em;
     color: var(--white);
   }
   .wait-sub {
     position: absolute;
     bottom: 18%;
     font-size: 12px;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.25em; --ls: 0.25em;
     color: rgba(255,255,255,0.55);
     text-transform: uppercase;
   }
@@ -335,7 +360,7 @@
   .tap-text {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(72px, 22vw, 140px);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.08em; --ls: 0.08em;
     color: #000000;
     width: clamp(220px, 55vw, 380px);
     height: clamp(220px, 55vw, 380px);
@@ -350,14 +375,14 @@
   }
   .tap-text.dont-tap {
     font-size: clamp(72px, 22vw, 140px);
-    letter-spacing: 0.08em;
+    letter-spacing: 0.08em; --ls: 0.08em;
     line-height: 0.9;
     color: #8b0000;
     flex-direction: column;
   }
   .tap-text.dont-tap .dont-label {
     font-size: clamp(28px, 8vw, 52px);
-    letter-spacing: 0.06em;
+    letter-spacing: 0.06em; --ls: 0.06em;
   }
   @keyframes tapPop {
     0% { transform: scale(0.8); opacity: 0; }
@@ -366,25 +391,25 @@
 
   /* ── RESULT (solo) ── */
   #result { background: var(--bg); gap: 0; padding: 32px 32px; }
-  .result-label { font-size: 11px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; }
+  .result-label { font-size: 11px; letter-spacing: 0.3em; --ls: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 10px; }
   .result-time {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(80px, 25vw, 160px);
     line-height: 1;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05em; --ls: 0.05em;
     margin-bottom: 4px;
   }
-  .result-unit { font-size: 12px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 16px; }
+  .result-unit { font-size: 12px; letter-spacing: 0.3em; --ls: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 16px; }
   .grade-caption {
     font-size: 11px;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.2em; --ls: 0.2em;
     color: var(--text-dim);
     margin-bottom: 8px;
   }
   .result-grade {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(28px, 8vw, 42px);
-    letter-spacing: 0.15em;
+    letter-spacing: 0.15em; --ls: 0.15em;
     margin-bottom: 28px;
     padding: 10px 22px;
     border-radius: 4px;
@@ -402,22 +427,22 @@
   .stat-val {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 34px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05em; --ls: 0.05em;
     color: var(--white);
     line-height: 1;
   }
-  .stat-lbl { font-size: 10px; letter-spacing: 0.22em; color: var(--text-dim); text-transform: uppercase; margin-top: 4px; }
+  .stat-lbl { font-size: 10px; letter-spacing: 0.22em; --ls: 0.22em; color: var(--text-dim); text-transform: uppercase; margin-top: 4px; }
 
   .result-actions { display: flex; gap: 14px; }
   .btn-retry {
     background: var(--white); color: var(--bg); border: none;
-    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em; --ls: 0.12em;
     padding: 14px 44px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
   }
   .btn-retry:active { transform: scale(0.96); }
   .btn-home {
     background: transparent; color: var(--text-dim); border: 1px solid var(--muted);
-    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em; --ls: 0.12em;
     padding: 14px 28px; cursor: pointer; border-radius: 4px; transition: transform 0.1s, color 0.1s;
   }
   .btn-home:active { transform: scale(0.96); color: var(--white); }
@@ -427,25 +452,25 @@
   .getready-text {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.1em; --ls: 0.1em;
     color: var(--amber);
   }
 
   /* ── EARLY / SLOW (share the same dark-red background and layout) ── */
   #early, #slow { background: #150505; gap: 20px; }
   .early-icon { font-size: 60px; }
-  .early-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 13vw, 68px); letter-spacing: 0.1em; color: var(--red); }
-  .early-sub { font-size: 12px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
+  .early-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 13vw, 68px); letter-spacing: 0.1em; --ls: 0.1em; color: var(--red); }
+  .early-sub { font-size: 12px; letter-spacing: 0.2em; --ls: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
 
   /* ── CHALLENGE: PLAYER SETUP ── */
   #chalSetup { background: var(--bg); gap: 0; padding: 32px; }
   .chal-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(44px, 13vw, 72px);
-    letter-spacing: 0.12em;
+    letter-spacing: 0.12em; --ls: 0.12em;
     margin-bottom: 8px;
   }
-  .chal-sub { font-size: 11px; letter-spacing: 0.25em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 40px; }
+  .chal-sub { font-size: 11px; letter-spacing: 0.25em; --ls: 0.25em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 40px; }
   .player-inputs { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 300px; margin-bottom: 36px; }
   .player-input-row { display: flex; align-items: center; gap: 12px; }
   .player-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
@@ -461,12 +486,12 @@
     padding: 12px 14px;
     border-radius: 4px;
     outline: none;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05em; --ls: 0.05em;
   }
   .player-input:focus { border-color: var(--white); }
   .btn-begin {
     background: var(--amber); color: #0a0a0a; border: none;
-    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.15em;
+    font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 0.15em; --ls: 0.15em;
     padding: 16px 60px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
     width: 260px;
   }
@@ -474,7 +499,7 @@
   .btn-back {
     margin-top: 12px;
     background: transparent; color: var(--text-dim); border: none;
-    font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.2em;
+    font-family: 'DM Mono', monospace; font-size: 12px; letter-spacing: 0.2em; --ls: 0.2em;
     cursor: pointer; text-transform: uppercase; text-decoration: underline;
   }
 
@@ -496,7 +521,7 @@
     gap: 10px;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 18px;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.1em; --ls: 0.1em;
   }
   .score-half.p1 { background: rgba(61,156,245,0.12); color: var(--p1); }
   .score-half.p2 { background: rgba(245,108,61,0.12); color: var(--p2); }
@@ -508,36 +533,36 @@
   /* ── CHAL ROUND RESULT ── */
   #chalRound { background: var(--bg); gap: 0; padding: 40px 28px; padding-top: 72px; }
   .round-player-name {
-    font-size: 11px; letter-spacing: 0.3em; color: var(--text-dim);
+    font-size: 11px; letter-spacing: 0.3em; --ls: 0.3em; color: var(--text-dim);
     text-transform: uppercase; margin-bottom: 8px;
   }
   .round-time {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(72px, 22vw, 130px);
     line-height: 1;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.05em; --ls: 0.05em;
     margin-bottom: 4px;
   }
-  .round-unit { font-size: 12px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .round-unit { font-size: 12px; letter-spacing: 0.3em; --ls: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
   .round-grade {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(28px, 8vw, 42px); letter-spacing: 0.15em;
+    font-size: clamp(28px, 8vw, 42px); letter-spacing: 0.15em; --ls: 0.15em;
     padding: 10px 22px; border-radius: 4px;
     margin-bottom: 20px; text-align: center;
   }
   .round-winner-tag {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px; letter-spacing: 0.18em;
+    font-size: 22px; letter-spacing: 0.18em; --ls: 0.18em;
     padding: 10px 24px; border-radius: 4px;
     margin-bottom: 32px;
   }
   .round-winner-tag.p1w { background: rgba(61,156,245,0.15); color: var(--p1); }
   .round-winner-tag.p2w { background: rgba(245,108,61,0.15); color: var(--p2); }
   .round-winner-tag.tie { background: rgba(255,255,255,0.08); color: var(--white); }
-  .round-next-info { font-size: 11px; letter-spacing: 0.22em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 24px; }
+  .round-next-info { font-size: 11px; letter-spacing: 0.22em; --ls: 0.22em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 24px; }
   .btn-next-round {
     background: var(--white); color: var(--bg); border: none;
-    font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.12em;
+    font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.12em; --ls: 0.12em;
     padding: 15px 48px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
   }
   .btn-next-round:active { transform: scale(0.96); }
@@ -545,18 +570,18 @@
   /* ── CHAL FINAL ── */
   #chalFinal { background: var(--bg); gap: 0; padding: 32px; }
   .final-crown { font-size: 56px; margin-bottom: 12px; }
-  .final-winner-label { font-size: 11px; letter-spacing: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
+  .final-winner-label { font-size: 11px; letter-spacing: 0.3em; --ls: 0.3em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
   .final-winner-name {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(52px, 16vw, 88px);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.1em; --ls: 0.1em;
     line-height: 1;
     margin-bottom: 4px;
   }
   .final-winner-name.p1 { color: var(--p1); }
   .final-winner-name.p2 { color: var(--p2); }
   .final-winner-name.tie { color: var(--white); }
-  .final-wins-label { font-size: 12px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 36px; }
+  .final-wins-label { font-size: 12px; letter-spacing: 0.2em; --ls: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 36px; }
   .final-score-breakdown {
     display: flex; gap: 28px; margin-bottom: 40px;
   }
@@ -567,31 +592,31 @@
     text-align: center;
     min-width: 110px;
   }
-  .fsc-name { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
+  .fsc-name { font-size: 11px; letter-spacing: 0.2em; --ls: 0.2em; text-transform: uppercase; margin-bottom: 6px; }
   .fsc-name.p1 { color: var(--p1); }
   .fsc-name.p2 { color: var(--p2); }
   .fsc-best {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 38px; letter-spacing: 0.05em; line-height: 1;
+    font-size: 38px; letter-spacing: 0.05em; --ls: 0.05em; line-height: 1;
   }
   .fsc-best.p1 { color: var(--p1); }
   .fsc-best.p2 { color: var(--p2); }
-  .fsc-sub { font-size: 10px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-top: 3px; }
+  .fsc-sub { font-size: 10px; letter-spacing: 0.2em; --ls: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-top: 3px; }
   .fsc-wins {
-    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    font-size: 11px; letter-spacing: 0.15em; --ls: 0.15em; text-transform: uppercase;
     margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--muted);
   }
   .final-actions { display: flex; gap: 14px; }
   .btn-rematch {
     background: var(--amber); color: #0a0a0a; border: none;
-    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em;
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.12em; --ls: 0.12em;
     padding: 14px 40px; cursor: pointer; border-radius: 4px; transition: transform 0.1s;
   }
   .btn-rematch:active { transform: scale(0.96); }
 
   .tap-breakdown {
     font-size: 11px;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.15em; --ls: 0.15em;
     color: var(--text-dim);
     text-align: center;
     margin-bottom: 16px;
@@ -768,7 +793,7 @@
   </div>
 </div>
 
-<div class="version-footer hidden">v1.0.066</div>
+<div class="version-footer hidden">v1.0.067</div>
 
 <script src="js/app.js"></script>
 <script src="js/multiplayer.js"></script>
