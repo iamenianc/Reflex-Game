@@ -768,7 +768,7 @@
   </div>
 </div>
 
-<div class="version-footer hidden">v1.0.064</div>
+<div class="version-footer hidden">v1.0.065</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -1586,7 +1586,7 @@ document.addEventListener('keyup',   blockKeyboard, { capture: true });
 
 // ── LEADERBOARD / TAG ──
 const WORKER_URL = 'https://reflex-scores.reflex-game.workers.dev';
-let playerTag = localStorage.getItem('rfx_tag') || '';
+let playerTag = sessionStorage.getItem('rfx_tag') || ''; // persists across refreshes, cleared when the tab closes
 let pendingScore = null;      // qualifying solo score awaiting a tag before submit
 let pendingStanding = null;   // its { qualifies, rank }, captured at prompt time
 let leaderboard = [];          // last fetched top-20 [{tag, ms, at}, ...]
@@ -1675,7 +1675,7 @@ async function confirmTag() {
     return;
   }
   playerTag = val;
-  localStorage.setItem('rfx_tag', val);
+  sessionStorage.setItem('rfx_tag', val);
   warnedTag = null;
   hideTagModal();
   if (pendingScore !== null) {
