@@ -52,7 +52,18 @@
   .screen.hidden { opacity: 0; pointer-events: none; }
 
   /* ── HOME ── */
-  #home { background: var(--bg); gap: 0; }
+  /* Allow vertical scrolling when the expanded leaderboard overflows the
+     viewport. `safe center` keeps content centered when it fits but pins it
+     to the top (rather than clipping) once it's taller than the screen. */
+  #home {
+    background: var(--bg);
+    gap: 0;
+    justify-content: safe center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding: 24px 0;
+  }
   .title-block { text-align: center; margin-bottom: 48px; }
   .title-block h1 {
     font-family: 'Bebas Neue', sans-serif;
@@ -155,12 +166,14 @@
 
   /* ── LEADERBOARD ── */
   .leaderboard {
-    margin-top: 4px;
+    margin-top: 32px;
     width: 260px;
     font-size: 11px;
     letter-spacing: 0.12em;
     color: var(--text-dim);
   }
+  /* Extra clearance above the fixed version footer when all 10 rows show. */
+  .leaderboard.lb-expanded { padding-bottom: 56px; }
   .lb-title {
     text-transform: uppercase;
     letter-spacing: 0.25em;
@@ -179,38 +192,52 @@
   .lb-rank { width: 20px; color: var(--muted); }
   .lb-tag  { flex: 1; }
   .lb-ms   { color: var(--white); width: 56px; text-align: right; }
-  .lb-date { color: var(--muted); font-size: 9px; width: 92px; text-align: right; }
+  .lb-date { color: var(--muted); font-size: 9px; width: 84px; text-align: right; }
+  .lb-toggle {
+    display: block;
+    margin: 8px auto 0;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .lb-toggle:hover { color: var(--text-dim); }
+  .lb-toggle.hidden { display: none; }
 
   .home-buttons { display: flex; flex-direction: column; gap: 14px; align-items: center; }
-  .version-footer { position: absolute; bottom: 18px; width: 100%; text-align: center; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; }
-  .btn-solo {
-    background: var(--white);
-    color: var(--bg);
-    border: none;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 26px;
-    letter-spacing: 0.15em;
-    padding: 16px 60px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: transform 0.1s, background 0.1s;
+  .version-footer { position: fixed; right: calc(10px + env(safe-area-inset-right)); bottom: calc(8px + env(safe-area-inset-bottom)); text-align: right; font-family: 'DM Mono', monospace; font-size: 11px; color: var(--muted); letter-spacing: 0.08em; pointer-events: none; z-index: 10; transition: opacity 0.2s ease; }
+  .version-footer.hidden { opacity: 0; }
+  /* All three home buttons share one size for a uniform stack. */
+  .btn-solo, .btn-challenge, .bgm-toggle {
     width: 260px;
-  }
-  .btn-solo:active { transform: scale(0.96); background: #ccc; }
-  .btn-challenge {
-    background: transparent;
-    color: var(--amber);
-    border: 1px solid var(--amber);
+    box-sizing: border-box;
     font-family: 'Bebas Neue', sans-serif;
     font-size: 22px;
-    letter-spacing: 0.15em;
-    padding: 14px 60px;
-    cursor: pointer;
+    letter-spacing: 0.18em;
+    padding: 14px 0;
+    text-align: center;
     border-radius: 4px;
-    transition: transform 0.1s, background 0.1s;
-    width: 260px;
+    cursor: pointer;
   }
-  .btn-challenge:active { transform: scale(0.96); background: rgba(255,171,0,0.1); }
+  .btn-solo {
+    background: var(--bg);
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    transition: transform 0.1s, background 0.1s;
+  }
+  .btn-solo:active { transform: scale(0.96); background: rgba(255,171,0,0.1); }
+  .btn-challenge {
+    background: transparent;
+    color: var(--white);
+    border: 1px solid var(--white);
+    transition: transform 0.1s, background 0.1s;
+  }
+  .btn-challenge:active { transform: scale(0.96); background: rgba(240,240,240,0.1); }
 
   /* ── COUNTDOWN ── */
   #countdown { background: var(--bg); gap: 16px; }
@@ -235,25 +262,51 @@
   }
 
   /* ── WAIT ── */
-  #wait { background: var(--red); gap: 24px; cursor: pointer; }
+  /* The WAIT text is centered like #getReady's text (same vertical position),
+     while the pulsing circle and labels are absolutely positioned around it
+     so they don't shift the centered text. */
+  #wait { background: var(--red); cursor: pointer; }
   .wait-player-tag {
+    position: absolute;
+    top: 18%;
     font-size: 12px;
     letter-spacing: 0.3em;
     color: rgba(255,255,255,0.7);
     text-transform: uppercase;
   }
-  .wait-icon { font-size: 64px; animation: breathe 1.5s ease-in-out infinite; }
+  /* Pulsing circle sits directly behind the WAIT text, sized to match the
+     green tap circle (.tap-text) so the two screens align visually. */
+  .wait-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: clamp(220px, 55vw, 380px);
+    height: clamp(220px, 55vw, 380px);
+    border-radius: 50%;
+    background: rgba(0,0,0,0.18);
+    transform: translate(-50%, -50%);
+    animation: breathe 1.5s ease-in-out infinite;
+  }
   @keyframes breathe {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.08); }
   }
   .wait-text {
+    position: relative;
+    z-index: 1;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(48px, 14vw, 80px);
+    font-size: clamp(60px, 18vw, 110px);
     letter-spacing: 0.1em;
     color: white;
   }
-  .wait-sub { font-size: 12px; letter-spacing: 0.25em; color: rgba(255,255,255,0.55); text-transform: uppercase; }
+  .wait-sub {
+    position: absolute;
+    bottom: 18%;
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    color: rgba(255,255,255,0.55);
+    text-transform: uppercase;
+  }
 
   /* ── TAP ── */
   #tap { background: #ffffff; cursor: pointer; }
@@ -354,7 +407,7 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
     letter-spacing: 0.1em;
-    color: white;
+    color: var(--amber);
   }
 
   /* ── EARLY ── */
@@ -526,14 +579,9 @@
   .tap-breakdown span { color: var(--white); }
 
   .bgm-toggle {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 18px;
-    letter-spacing: 0.2em;
+    background: transparent;
     color: var(--muted);
     border: 1px solid var(--muted);
-    border-radius: 4px;
-    padding: 8px 24px;
-    cursor: pointer;
     user-select: none;
     transition: color 0.2s, border-color 0.2s;
   }
@@ -573,14 +621,14 @@
   <div class="best-display" id="bestDisplay">Best — — —</div>
   <div class="home-buttons">
     <button class="btn-solo" id="btnStart">SOLO PLAY</button>
-    <button class="btn-challenge" id="btnChallenge">⚔ 2P CHALLENGE</button>
+    <button class="btn-challenge" id="btnChallenge">2P MODE</button>
     <div class="bgm-toggle" id="bgmToggle"></div>
   </div>
   <div class="leaderboard" id="leaderboard">
     <div class="lb-title">Global Best</div>
     <div id="lbRows"></div>
+    <button class="lb-toggle hidden" id="lbToggle" type="button">Show all 10</button>
   </div>
-  <div class="version-footer">v1.0.041</div>
 </div>
 
 <!-- COUNTDOWN -->
@@ -598,7 +646,7 @@
 <!-- WAIT -->
 <div class="screen hidden" id="wait">
   <div class="wait-player-tag" id="waitPlayerTag"></div>
-  <div class="wait-icon">🔴</div>
+  <div class="wait-icon"></div>
   <div class="wait-text">WAIT</div>
   <div class="wait-sub">Don't tap yet...</div>
 </div>
@@ -699,6 +747,8 @@
     <button class="btn-home" id="btnFinalHome">HOME</button>
   </div>
 </div>
+
+<div class="version-footer hidden">v1.0.052</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
@@ -910,6 +960,9 @@ allScreens.forEach(id => scrEls[id] = document.getElementById(id));
 
 function show(name) {
   allScreens.forEach(id => scrEls[id].classList.toggle('hidden', id !== name));
+  // Version number is only visible on the home screen — it disappears once
+  // the player clicks into any other screen (i.e. starts playing).
+  document.querySelector('.version-footer').classList.toggle('hidden', name !== 'home');
 }
 
 // ── PERSISTENT STATE ──
@@ -1051,14 +1104,14 @@ function randomizeTapsPerSet() {
   tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.49);
 
   // Guarantee at least one TAP! — if all are don't-tap, flip a random one.
+  // Use fresh entropy for the index rather than reusing buf, which was already
+  // consumed to build the sequence above.
   if (tapSequence.every(v => v)) {
-    const i = Math.floor((buf[0] / 0x100000000) * TAPS_PER_SET);
-    tapSequence[i] = false;
+    tapSequence[Math.floor(Math.random() * TAPS_PER_SET)] = false;
   }
   // Guarantee at least one DON'T TAP! — if none exist, flip a random one.
   if (tapSequence.every(v => !v)) {
-    const i = Math.floor((buf[1] / 0x100000000) * TAPS_PER_SET);
-    tapSequence[i] = true;
+    tapSequence[Math.floor(Math.random() * TAPS_PER_SET)] = true;
   }
 }
 
@@ -1071,7 +1124,7 @@ function startWait() {
   } else {
     document.getElementById('waitPlayerTag').textContent = '';
   }
-  const delay = 400 + Math.random() * 3100; // 0.4s–3.5s
+  const delay = 400 + Math.random() * 3600; // 0.4s–4.0s
   waitTimeout = setTimeout(showTap, delay);
 }
 
@@ -1494,6 +1547,8 @@ let playerTag = localStorage.getItem('rfx_tag') || '';
 let pendingScore = null;      // qualifying solo score awaiting a tag before submit
 let leaderboard = [];          // last fetched top-10 [{tag, ms, at}, ...]
 const BOARD_SIZE = 10;
+const BOARD_COLLAPSED = 5;     // rows shown before the "show all" toggle
+let lbExpanded = false;        // whether the board is showing all entries
 let submitInFlight = false;    // one POST at a time
 let lastSubmitAt = 0;          // epoch ms of last successful POST
 const SUBMIT_COOLDOWN_MS = 30_000;
@@ -1619,11 +1674,15 @@ async function loadLeaderboard() {
 
 function renderLeaderboard(entries) {
   const el = document.getElementById('lbRows');
+  const toggle = document.getElementById('lbToggle');
+  document.getElementById('leaderboard').classList.toggle('lb-expanded', lbExpanded);
   if (!entries || !entries.length) {
     el.innerHTML = '<div style="font-size:10px;color:var(--muted);text-align:center;padding:6px 0">no scores yet</div>';
+    toggle.classList.add('hidden');
     return;
   }
-  el.innerHTML = entries.map((e, i) => {
+  const visible = lbExpanded ? entries : entries.slice(0, BOARD_COLLAPSED);
+  el.innerHTML = visible.map((e, i) => {
     const isYou = e.tag === playerTag;
     return `<div class="lb-row${isYou ? ' lb-you' : ''}">
       <span class="lb-rank">${i + 1}</span>
@@ -1632,17 +1691,30 @@ function renderLeaderboard(entries) {
       <span class="lb-date">${fmtScoreDate(e.at)}</span>
     </div>`;
   }).join('');
+  // Only offer the toggle when there are more than the collapsed count.
+  if (entries.length > BOARD_COLLAPSED) {
+    toggle.classList.remove('hidden');
+    toggle.textContent = lbExpanded ? 'Show top 5' : `Show all ${entries.length}`;
+  } else {
+    toggle.classList.add('hidden');
+  }
 }
 
-// Format an epoch-ms timestamp as a compact local date + time.
+document.getElementById('lbToggle').addEventListener('click', () => {
+  lbExpanded = !lbExpanded;
+  renderLeaderboard(leaderboard);
+});
+
+// Format an epoch-ms timestamp as a local date in "d mmm yyyy" form (e.g. 8 Jun 2026).
 // Returns '' for missing/invalid values (older entries have no `at`).
 function fmtScoreDate(at) {
   if (typeof at !== 'number' || !isFinite(at)) return '';
   const d = new Date(at);
   if (isNaN(d)) return '';
-  const date = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  return `${date} ${time}`;
+  const day = d.getDate();
+  const mmm = d.toLocaleDateString([], { month: 'short' });
+  const yyyy = d.getFullYear();
+  return `${day} ${mmm} ${yyyy}`;
 }
 
 // ── INIT ──
