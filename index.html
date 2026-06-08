@@ -38,6 +38,9 @@
     overflow: hidden;
     touch-action: none;
     user-select: none;
+    /* App-wide uppercase: the design is consistently caps, so transform all
+       text by default. Source strings can stay readable in mixed case. */
+    text-transform: uppercase;
   }
 
   .screen {
@@ -184,15 +187,16 @@
   }
   .lb-row {
     display: flex;
-    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
     padding: 3px 0;
     border-bottom: 1px solid #1a1a1a;
   }
   .lb-row.lb-you { color: var(--amber); }
-  .lb-rank { width: 20px; color: var(--muted); }
+  .lb-rank { width: 16px; color: var(--muted); text-align: right; }
   .lb-tag  { flex: 1; }
   .lb-ms   { color: var(--white); width: 56px; text-align: right; }
-  .lb-date { color: var(--muted); font-size: 9px; width: 84px; text-align: right; }
+  .lb-date { color: var(--muted); width: 96px; text-align: right; }
   .lb-toggle {
     display: block;
     margin: 8px auto 0;
@@ -238,17 +242,10 @@
     transition: transform 0.1s, background 0.1s;
   }
   .btn-challenge:active { transform: scale(0.96); background: rgba(240,240,240,0.1); }
+  .btn-challenge.hidden { display: none; }
 
   /* ── COUNTDOWN ── */
-  #countdown { background: var(--bg); gap: 16px; }
-  .countdown-context {
-    font-size: 12px;
-    letter-spacing: 0.3em;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-  .countdown-label { font-size: 12px; letter-spacing: 0.25em; color: var(--text-dim); text-transform: uppercase; }
+  #countdown { background: var(--bg); }
   .countdown-num {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(120px, 35vw, 220px);
@@ -297,7 +294,7 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
     letter-spacing: 0.1em;
-    color: white;
+    color: var(--white);
   }
   .wait-sub {
     position: absolute;
@@ -357,7 +354,6 @@
     font-size: 11px;
     letter-spacing: 0.2em;
     color: var(--text-dim);
-    text-transform: lowercase;
     margin-bottom: 8px;
   }
   .result-grade {
@@ -402,7 +398,7 @@
   .btn-home:active { transform: scale(0.96); color: var(--white); }
 
   /* ── GET READY ── */
-  #getReady { background: #000000; gap: 16px; }
+  #getReady { background: var(--bg); gap: 16px; }
   .getready-text {
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(60px, 18vw, 110px);
@@ -410,8 +406,8 @@
     color: var(--amber);
   }
 
-  /* ── EARLY ── */
-  #early { background: #150505; gap: 20px; }
+  /* ── EARLY / SLOW (share the same dark-red background and layout) ── */
+  #early, #slow { background: #150505; gap: 20px; }
   .early-icon { font-size: 60px; }
   .early-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px, 13vw, 68px); letter-spacing: 0.1em; color: var(--red); }
   .early-sub { font-size: 12px; letter-spacing: 0.2em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 12px; }
@@ -620,7 +616,7 @@
   </div>
   <div class="best-display" id="bestDisplay">Best — — —</div>
   <div class="home-buttons">
-    <button class="btn-solo" id="btnStart">SOLO PLAY</button>
+    <button class="btn-solo" id="btnStart">BEGIN TEST</button>
     <button class="btn-challenge" id="btnChallenge">2P MODE</button>
     <div class="bgm-toggle" id="bgmToggle"></div>
   </div>
@@ -633,8 +629,6 @@
 
 <!-- COUNTDOWN -->
 <div class="screen hidden" id="countdown">
-  <div class="countdown-context" id="countContext"></div>
-  <div class="countdown-label">Get ready</div>
   <div class="countdown-num" id="countNum">3</div>
 </div>
 
@@ -748,9 +742,18 @@
   </div>
 </div>
 
-<div class="version-footer hidden">v1.0.052</div>
+<div class="version-footer hidden">v1.0.061</div>
 
 <script>
+// ═══════════════════════════════════════════════════════════
+// FEATURE FLAGS
+// Toggle in-progress / disabled features here. Set TWO_PLAYER_MODE back to
+// true to re-enable the 2P Mode button on the home screen.
+// ═══════════════════════════════════════════════════════════
+const FEATURES = {
+  TWO_PLAYER_MODE: false,
+};
+
 // ═══════════════════════════════════════════════════════════
 // SOUND ENGINE
 // All audio is synthesized via Web Audio API — no audio files.
@@ -1064,7 +1067,6 @@ function showScoreBar(visible) {
 function startCountdown(context) {
   randomizeTapsPerSet();
   show('countdown');
-  document.getElementById('countContext').textContent = context || '';
   let n = 3;
   const numEl = document.getElementById('countNum');
   numEl.textContent = n;
@@ -1091,6 +1093,8 @@ function showGetReady() {
 }
 
 function randomizeTapsPerSet() {
+  // Decide the set length (6 or 7) FIRST — the sequence below is sized and
+  // generated against TAPS_PER_SET, so the length must be fixed before it.
   TAPS_PER_SET = Math.random() < 0.5 ? 6 : 7;
   setTaps      = [];
   setTapNum    = 0;
@@ -1103,11 +1107,14 @@ function randomizeTapsPerSet() {
   crypto.getRandomValues(buf);
   tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.49);
 
-  // Guarantee at least one TAP! — if all are don't-tap, flip a random one.
+  // Guarantee at least one TAP! within the first 6 slots — if those are all
+  // "don't tap", flip a random one of them to TAP!. (A set is 6 or 7 long, so
+  // this ensures the player always gets a real tap early in every set.)
   // Use fresh entropy for the index rather than reusing buf, which was already
   // consumed to build the sequence above.
-  if (tapSequence.every(v => v)) {
-    tapSequence[Math.floor(Math.random() * TAPS_PER_SET)] = false;
+  const head = Math.min(6, TAPS_PER_SET);
+  if (tapSequence.slice(0, head).every(v => v)) {
+    tapSequence[Math.floor(Math.random() * head)] = false;
   }
   // Guarantee at least one DON'T TAP! — if none exist, flip a random one.
   if (tapSequence.every(v => !v)) {
@@ -1471,7 +1478,13 @@ document.getElementById('btnStart').addEventListener('click', () => {
   startCountdown('');
 });
 
+// 2P Mode is gated behind a feature flag. When disabled, hide the button
+// entirely and ignore the handler as a safety net.
+if (!FEATURES.TWO_PLAYER_MODE) {
+  document.getElementById('btnChallenge').classList.add('hidden');
+}
 document.getElementById('btnChallenge').addEventListener('click', () => {
+  if (!FEATURES.TWO_PLAYER_MODE) return;
   show('chalSetup');
 });
 
