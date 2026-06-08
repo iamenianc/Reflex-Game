@@ -186,6 +186,15 @@
   }
   /* Extra clearance above the fixed version footer when all rows show. */
   .leaderboard.lb-expanded { padding-bottom: 56px; }
+  /* When expanded, cap the row list height and let it scroll internally so a
+     long board never pushes the toggle/footer off-screen. Scrollbar hidden. */
+  .leaderboard.lb-expanded #lbRows {
+    max-height: 40vh;
+    overflow-y: auto;
+    scrollbar-width: none;            /* Firefox */
+    -ms-overflow-style: none;         /* old Edge/IE */
+  }
+  .leaderboard.lb-expanded #lbRows::-webkit-scrollbar { display: none; } /* Chrome/Safari */
   .lb-title {
     text-transform: uppercase;
     letter-spacing: 0.25em;
@@ -759,7 +768,7 @@
   </div>
 </div>
 
-<div class="version-footer hidden">v1.0.062</div>
+<div class="version-footer hidden">v1.0.063</div>
 
 <script>
 // ═══════════════════════════════════════════════════════════
