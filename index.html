@@ -312,7 +312,7 @@
   /* The WAIT text is centered like #getReady's text (same vertical position),
      while the pulsing circle and labels are absolutely positioned around it
      so they don't shift the centered text. */
-  #wait { background: var(--red); cursor: pointer; }
+  #wait { background: #150505; cursor: pointer; }
   .wait-player-tag {
     position: absolute;
     top: 18%;
@@ -668,6 +668,7 @@
   <div class="best-display" id="bestDisplay">Best — — —</div>
   <div class="home-buttons">
     <button class="btn-solo" id="btnStart">BEGIN TEST</button>
+    <button class="btn-solo" id="btnInfinite">INFINITE MODE</button>
     <button class="btn-challenge" id="btnChallenge">2P MODE</button>
     <div class="bgm-toggle" id="bgmToggle"></div>
   </div>
@@ -713,15 +714,14 @@
 <div class="screen hidden" id="slow">
   <div class="early-icon">🐢</div>
   <div class="early-text" style="color:var(--amber)">TOO SLOW</div>
-  <div class="early-sub">Under 1500ms next time</div>
   <button class="btn-retry" id="btnSlowContinue">BACK TO MENU</button>
 </div>
 
 <!-- RESULT (solo) -->
 <div class="screen hidden" id="result">
-  <div class="result-label">Your time</div>
+  <div class="result-label" id="resultLabel">Your time</div>
   <div class="result-time" id="resultTime">000</div>
-  <div class="result-unit">milliseconds avg</div>
+  <div class="result-unit" id="resultUnit">milliseconds avg</div>
   <div class="tap-breakdown" id="resultBreakdown"></div>
   <div class="grade-caption" id="resultCaption">your reflex rating is</div>
   <div class="result-grade" id="resultGrade"></div>
@@ -793,7 +793,7 @@
   </div>
 </div>
 
-<div class="version-footer hidden">v1.0.067</div>
+<div class="version-footer hidden">v1.0.068</div>
 
 <script src="js/app.js"></script>
 <script src="js/multiplayer.js"></script>
