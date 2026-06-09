@@ -172,46 +172,46 @@ function stopReactionTone() {
 // Good baseline (above average) is calibrated around 380ms or better.
 // cls maps to a CSS class (grade-s through grade-f) for color theming.
 const GRADES = [
-  // S-Tier: Elite / Near-Instantaneous Decision Making (Under 320ms)
-  { max: 250,      emoji: '⚡', label: 'SYNAPTIC LIGHTNING',   cls: 'grade-s' },
-  { max: 265,      emoji: '🤖', label: 'CYBORG CORE',          cls: 'grade-s' },
-  { max: 278,      emoji: '🏎️', label: 'F1 DRIVER',            cls: 'grade-s' },
-  { max: 290,      emoji: '🐍', label: 'VIPER REFLEXES',       cls: 'grade-s' },
-  { max: 302,      emoji: '🗡️', label: 'KATANA BLADE',         cls: 'grade-s' },
-  { max: 315,      emoji: '🥷', label: 'SHADOW NINJA',         cls: 'grade-s' },
+  // S-Tier: Elite / Near-Instantaneous Decision Making (Under 220ms)
+  { max: 150,      emoji: '⚡', label: 'SYNAPTIC LIGHTNING',   cls: 'grade-s' },
+  { max: 165,      emoji: '🤖', label: 'CYBORG CORE',          cls: 'grade-s' },
+  { max: 178,      emoji: '🏎️', label: 'F1 DRIVER',            cls: 'grade-s' },
+  { max: 190,      emoji: '🐍', label: 'VIPER REFLEXES',       cls: 'grade-s' },
+  { max: 202,      emoji: '🗡️', label: 'KATANA BLADE',         cls: 'grade-s' },
+  { max: 215,      emoji: '🥷', label: 'SHADOW NINJA',         cls: 'grade-s' },
 
-  // A-Tier: Good / Above Average Performance (315ms to 380ms)
-  { max: 325,      emoji: '🎮', label: 'PRO GAMER',            cls: 'grade-a' },
-  { max: 334,      emoji: '🦅', label: 'EAGLE-EYED',           cls: 'grade-a' },
-  { max: 343,      emoji: '🐆', label: 'CHETAH SPEED',         cls: 'grade-a' },
-  { max: 352,      emoji: '🏹', label: 'LASER SIGHT',          cls: 'grade-a' },
-  { max: 361,      emoji: '🎯', label: 'BULLSEYE',             cls: 'grade-a' },
-  { max: 370,      emoji: '☕', label: 'HOT COFFEE',           cls: 'grade-a' },
-  { max: 380,      emoji: '🧨', label: 'FIRECRACKER',          cls: 'grade-a' },
+  // A-Tier: Good / Above Average Performance (215ms to 280ms)
+  { max: 225,      emoji: '🎮', label: 'PRO GAMER',            cls: 'grade-a' },
+  { max: 234,      emoji: '🦅', label: 'EAGLE-EYED',           cls: 'grade-a' },
+  { max: 243,      emoji: '🐆', label: 'CHETAH SPEED',         cls: 'grade-a' },
+  { max: 252,      emoji: '🏹', label: 'LASER SIGHT',          cls: 'grade-a' },
+  { max: 261,      emoji: '🎯', label: 'BULLSEYE',             cls: 'grade-a' },
+  { max: 270,      emoji: '☕', label: 'HOT COFFEE',           cls: 'grade-a' },
+  { max: 280,      emoji: '🧨', label: 'FIRECRACKER',          cls: 'grade-a' },
 
-  // B-Tier: Average Population / Steady Control (380ms to 425ms)
-  { max: 388,      emoji: '🦘', label: 'KANGAROO',             cls: 'grade-b' },
-  { max: 396,      emoji: '🐕', label: 'LABRADOR',             cls: 'grade-b' },
-  { max: 404,      emoji: '🐿️', label: 'SQUIRREL',             cls: 'grade-b' },
-  { max: 412,      emoji: '🦫', label: 'BEAVER',               cls: 'grade-b' },
-  { max: 420,      emoji: '🦡', label: 'BADGER',               cls: 'grade-b' },
-  { max: 425,      emoji: '🦉', label: 'OWL',                  cls: 'grade-b' },
+  // B-Tier: Average Population / Steady Control (280ms to 325ms)
+  { max: 288,      emoji: '🦘', label: 'KANGAROO',             cls: 'grade-b' },
+  { max: 296,      emoji: '🐕', label: 'LABRADOR',             cls: 'grade-b' },
+  { max: 304,      emoji: '🐿️', label: 'SQUIRREL',             cls: 'grade-b' },
+  { max: 312,      emoji: '🦫', label: 'BEAVER',               cls: 'grade-b' },
+  { max: 320,      emoji: '🦡', label: 'BADGER',               cls: 'grade-b' },
+  { max: 325,      emoji: '🦉', label: 'OWL',                  cls: 'grade-b' },
 
-  // C-Tier: Mild Lag / Slightly Fatigued (425ms to 470ms)
-  { max: 433,      emoji: '🦥', label: 'SLOTH',                cls: 'grade-c' },
-  { max: 442,      emoji: '🐨', label: 'KOALA',                cls: 'grade-c' },
-  { max: 452,      emoji: '🐼', label: 'PANDA',                cls: 'grade-c' },
-  { max: 462,      emoji: '🐸', label: 'TOAD',                 cls: 'grade-c' },
-  { max: 470,      emoji: '🐌', label: 'SNAIL',                cls: 'grade-c' },
+  // C-Tier: Mild Lag / Slightly Fatigued (325ms to 370ms)
+  { max: 333,      emoji: '🦥', label: 'SLOTH',                cls: 'grade-c' },
+  { max: 342,      emoji: '🐨', label: 'KOALA',                cls: 'grade-c' },
+  { max: 352,      emoji: '🐼', label: 'PANDA',                cls: 'grade-c' },
+  { max: 362,      emoji: '🐸', label: 'TOAD',                 cls: 'grade-c' },
+  { max: 370,      emoji: '🐌', label: 'SNAIL',                cls: 'grade-c' },
 
-  // D-Tier: Substantial Delay / Heavy Processing (470ms to 520ms)
-  { max: 480,      emoji: '🦕', label: 'FOSSIL REFLEXES',      cls: 'grade-d' },
-  { max: 492,      emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
-  { max: 505,      emoji: '🧓', label: 'DIAL-UP CONNECTION',   cls: 'grade-d' },
-  { max: 520,      emoji: '🧱', label: 'MOLASSES REACTION',    cls: 'grade-d' },
+  // D-Tier: Substantial Delay / Heavy Processing (370ms to 420ms)
+  { max: 380,      emoji: '🦕', label: 'FOSSIL REFLEXES',      cls: 'grade-d' },
+  { max: 392,      emoji: '🛋️', label: 'COUCH ARCHAEOLOGIST', cls: 'grade-d' },
+  { max: 405,      emoji: '🧓', label: 'DIAL-UP CONNECTION',   cls: 'grade-d' },
+  { max: 420,      emoji: '🧱', label: 'MOLASSES REACTION',    cls: 'grade-d' },
 
-  // F-Tier: Severely Delayed (Over 520ms)
-  { max: 550,      emoji: '🐢', label: 'GEOLOGICAL EPOCH',     cls: 'grade-f' },
+  // F-Tier: Severely Delayed (Over 420ms)
+  { max: 450,      emoji: '🐢', label: 'GEOLOGICAL EPOCH',     cls: 'grade-f' },
   { max: Infinity, emoji: '🌌', label: 'HEAT DEATH OF UNIVERSE', cls: 'grade-f' },
 ];
 
@@ -245,8 +245,11 @@ let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
 // tapStartTime: performance.now() snapshot when green tap screen is painted (set in showTap via double-rAF).
 //               0 means the tap screen is not active — used as a guard in handleTap.
 // waitTimeout:  setTimeout handle for the random wait-to-green delay. Cleared on early tap.
-// slowTimeout:  setTimeout handle for the 1500ms too-slow cutoff. Cleared on successful tap.
+// slowTimeout:  setTimeout handle for the too-slow cutoff. Cleared on successful tap.
 // mode:         'solo' or 'challenge' — controls which result flow runs after a set.
+const DEFAULT_TAP_WINDOW_MS = 1500; // Default milliseconds to tap before it's considered too slow and triggers the penalty flow.
+const INFINITE_TAP_WINDOW_MS = 999; // milliseconds to tap in infinite mode — calibrated around 400ms with some leniency for fatigue
+
 let tapStartTime = 0;
 let waitTimeout  = null;
 let slowTimeout  = null;
@@ -338,7 +341,33 @@ function showScoreBar(visible) {
 // Also calls randomizeTapsPerSet() so TAPS_PER_SET is fresh for each set.
 // Flow after countdown: showGetReady → startWait → showTap → handleTap → result
 function startCountdown(context) {
-  if (mode !== 'infinite') randomizeTapsPerSet();
+  // Solo (test) mode uses a fixed 4-tap set. Challenge mode inlines the
+  // previous randomization logic here so we can remove the helper.
+  if (mode === 'solo') {
+    TAPS_PER_SET = 4;
+    setTaps = [];
+    setTapNum = 0;
+  } else if (mode === 'challenge') {
+    // Decide the set length (6 or 7) and build a per-set don't-tap sequence.
+    TAPS_PER_SET = Math.random() < 0.5 ? 6 : 7;
+    setTaps = [];
+    setTapNum = 0;
+
+    // Challenge: ~40% chance of DON'T TAP per slot, enforce at least one
+    // TAP! and at least one DON'T TAP!, and prevent first 3 from all being DON'T TAP.
+    const dontTapProb = 0.40;
+    const buf = new Uint32Array(TAPS_PER_SET);
+    crypto.getRandomValues(buf);
+    tapSequence = Array.from(buf, v => (v / 0x100000000) < dontTapProb);
+
+    if (tapSequence.every(v => !v)) {
+      tapSequence[Math.floor(Math.random() * TAPS_PER_SET)] = true;
+    }
+    const HEAD = 3;
+    if (tapSequence.slice(0, HEAD).every(v => v)) {
+      tapSequence[Math.floor(Math.random() * HEAD)] = false;
+    }
+  }
   show('countdown');
   let n = 3;
   const numEl = document.getElementById('countNum');
@@ -369,37 +398,8 @@ function showGetReady() {
   setTimeout(startWait, 1000);
 }
 
-function randomizeTapsPerSet() {
-  // Decide the set length (6 or 7) FIRST — the sequence below is sized and
-  // generated against TAPS_PER_SET, so the length must be fixed before it.
-  TAPS_PER_SET = Math.random() < 0.5 ? 6 : 7;
-  setTaps      = [];
-  setTapNum    = 0;
-
-  // Build a sequence of booleans (true = don't tap) for all TAPS_PER_SET slots.
-  // Each slot independently has a 49% chance of being "don't tap", but we
-  // enforce at least one TAP! and at least one DON'T TAP! per set.
-  // Uses crypto.getRandomValues for better entropy.
-  const buf = new Uint32Array(TAPS_PER_SET);
-  crypto.getRandomValues(buf);
-  tapSequence = Array.from(buf, v => (v / 0x100000000) < 0.49);
-
-  // Guarantee at least one DON'T TAP! — if none exist, flip a random one.
-  if (tapSequence.every(v => !v)) {
-    tapSequence[Math.floor(Math.random() * TAPS_PER_SET)] = true;
-  }
-
-  // HIGHEST-PRIORITY CONSTRAINT — applied LAST so nothing can override it:
-  // the first 3 slots must NOT all be "don't tap". If they are, flip a random
-  // one of those first 3 to a real TAP!. This is stricter than (and supersedes)
-  // any "tap somewhere early" rule, and runs after the don't-tap guarantee so
-  // that step can never reintroduce an all-don't-tap opening.
-  // (A set is always 6 or 7 long, so the first 3 slots always exist.)
-  const HEAD = 3;
-  if (tapSequence.slice(0, HEAD).every(v => v)) {
-    tapSequence[Math.floor(Math.random() * HEAD)] = false;
-  }
-}
+// `randomizeTapsPerSet` removed — challenge randomization is inlined in
+// `startCountdown()` and solo uses a fixed 4-tap set.
 
 function startWait() {
   tapStartTime = 0; // reset so touchstart guard works
@@ -411,7 +411,7 @@ function startWait() {
     document.getElementById('waitPlayerTag').textContent = '';
   }
   const minDelay = 400;
-  const maxDelay = mode === 'infinite' ? 2000 : 4000;
+  const maxDelay = mode === 'infinite' ? 1010 : 4000;
   const delay = minDelay + Math.random() * (maxDelay - minDelay);
   waitTimeout = setTimeout(showTap, delay);
 }
@@ -448,7 +448,7 @@ scrEls.wait.addEventListener('pointerdown', e => {
 });
 
 // ── SHOW TAP ──
-// triggerSlow fires via setTimeout after 1500ms on the tap screen — too-slow penalty.
+// triggerSlow fires via setTimeout after the configured tap window — too-slow penalty.
 // It zeros tapStartTime so the early-return guard in handleTap catches any late taps.
 function triggerSlow() {
   if (!tapStartTime) return; // already tapped
@@ -463,7 +463,7 @@ function triggerSlow() {
     infiniteFailReason = 'TOO SLOW';
     infiniteFailMs = ms;
     document.getElementById('earlyText').textContent = 'TOO SLOW';
-    document.getElementById('earlySub').textContent  = 'Under 450ms next time';
+    document.getElementById('earlySub').textContent  = `Under ${INFINITE_TAP_WINDOW_MS}ms next time`;
     show('slow');
     return;
   }
@@ -478,7 +478,7 @@ function triggerSlow() {
   show('slow');
 }
 
-// Fires after 1500ms when player correctly avoids tapping on a "don't tap" screen.
+// Fires after the configured tap window when player correctly avoids tapping on a "don't tap" screen.
 // Counts as a successful resist — advance the set without recording a reaction time.
 function resolveDontTap() {
   if (!tapStartTime) return; // already fired (tapped too early or handled)
@@ -511,8 +511,10 @@ function resolveDontTap() {
 function showTap() {
   if (mode === 'infinite') {
     // Infinite mode uses an independent don't-tap probability (40%).
-    // Keep the set-based sequence logic untouched for solo/challenge modes.
-    dontTapMode = Math.random() < 0.40;
+    // Use crypto.getRandomValues for stronger randomness than Math.random.
+    const _rv = new Uint32Array(1);
+    crypto.getRandomValues(_rv);
+    dontTapMode = (_rv[0] / 0x100000000) < 0.51;
   } else {
     dontTapMode = tapSequence[setTapNum] === true;
   }
@@ -527,10 +529,14 @@ function showTap() {
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
-      startReactionTone(780);
+      if (dontTapMode) {
+        playTone(600, 'triangle', 0.25, 0.20, getAudioCtx().currentTime, false);
+      } else {
+        startReactionTone(780);
+      }
       slowTimeout = setTimeout(
         dontTapMode ? resolveDontTap : triggerSlow,
-        mode === 'infinite' ? 450 : 1500
+        mode === 'infinite' ? INFINITE_TAP_WINDOW_MS : DEFAULT_TAP_WINDOW_MS
       );
     });
   });
@@ -544,7 +550,7 @@ function showTap() {
 
 // handleTap: fires on touchstart (iOS) or mousedown (desktop) while the tap screen is visible.
 // tapStartTime guards against firing before the double-rAF paint commit in showTap.
-// The >1500ms path is handled earlier by triggerSlow's setTimeout, so we never reach it here
+// The >configured tap window path is handled earlier by triggerSlow's setTimeout, so we never reach it here
 // — by then tapStartTime has been zeroed and the guard above already returned.
 function handleTap(e) {
   if (!tapStartTime) return; // guard: fired before paint committed, or after triggerSlow ran
@@ -586,12 +592,12 @@ function handleTap(e) {
   tapStartTime = 0; // zero before any show() call to prevent double-fire
 
   if (mode === 'infinite') {
-    if (ms >= 450) {
+    if (ms >= INFINITE_TAP_WINDOW_MS) {
       soundSlow();
       infiniteFailReason = 'TOO SLOW';
       infiniteFailMs = ms;
       document.getElementById('earlyText').textContent = 'TOO SLOW';
-      document.getElementById('earlySub').textContent  = 'Under 450ms next time';
+      document.getElementById('earlySub').textContent  = `Under ${INFINITE_TAP_WINDOW_MS}ms next time`;
       show('slow');
       return;
     }
@@ -644,9 +650,15 @@ function infiniteResult(score, ms, reason) {
   timeEl.textContent = score;
   timeEl.style.color = 'var(--amber)';
   unitEl.textContent = 'tests passed';
-  captionEl.textContent = reason === 'TOO SLOW' ? 'You survived:' : 'Final score';
-  breakdownEl.textContent = reason === 'TOO SLOW' ? `Reaction time ${ms}ms — you fell short of 450ms` : 'Respond in under 450ms to keep going';
-  gradeEl.textContent = score > 0 ? `🔥 ${score} PASSED` : '💥 NO SURVIVORS';
+  // Show a clear caption depending on why the run ended.
+  // If the player failed for being too slow, show the final score and the reason.
+  // Otherwise present that they survived the run.
+  captionEl.textContent = reason === 'TOO SLOW' ? 'Final score' : 'You survived:';
+  breakdownEl.textContent = reason === 'TOO SLOW'
+    ? `Reaction time ${ms}ms — you fell short of ${INFINITE_TAP_WINDOW_MS}ms`
+    : `Respond in under ${INFINITE_TAP_WINDOW_MS}ms to keep going`;
+  // Normalize casing for the passed label.
+  gradeEl.textContent = score > 0 ? `${score} passed` : 'TRY AGAIN';
   bestEl.textContent = `${score} passed`;
   if (score > 0) soundGoodResult(); else soundBadResult();
   show('result');
