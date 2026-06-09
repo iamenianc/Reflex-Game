@@ -250,8 +250,8 @@ let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
 let tapStartTime = 0;
 let waitTimeout  = null;
 let slowTimeout  = null;
-let mode = 'solo'; // 'solo' | 'challenge'
-
+let mode = 'solo'; // 'solo' | 'challenge' | 'infinite'
+let infiniteScore = 0;
 // Set state — randomized to 6 or 7 taps per set, chosen fresh at startCountdown.
 let TAPS_PER_SET = 6;
 let setTaps   = []; // reaction times (ms) collected so far in the current set
@@ -336,7 +336,7 @@ function showScoreBar(visible) {
 // Also calls randomizeTapsPerSet() so TAPS_PER_SET is fresh for each set.
 // Flow after countdown: showGetReady → startWait → showTap → handleTap → result
 function startCountdown(context) {
-  randomizeTapsPerSet();
+  if (mode !== 'infinite') randomizeTapsPerSet();
   show('countdown');
   let n = 3;
   const numEl = document.getElementById('countNum');
@@ -353,7 +353,11 @@ function startCountdown(context) {
     } else {
       clearInterval(interval);
       soundCountdownBeep(true);
-      showGetReady();
+      if (mode === 'infinite') {
+        startWait();
+      } else {
+        showGetReady();
+      }
     }
   }, 1000);
 }
@@ -419,6 +423,10 @@ scrEls.wait.addEventListener('pointerdown', e => {
   setTaps   = []; // discard any partial-set taps (early mid-set resets everything)
   setTapNum = 0;
   soundEarly();
+  if (mode === 'infinite') {
+    infiniteResult(infiniteScore, 0, 'TOO SOON');
+    return;
+  }
   if (mode === 'solo') {
     streak = 0;
     localStorage.setItem('rfx_streak', streak);
@@ -436,11 +444,17 @@ scrEls.wait.addEventListener('pointerdown', e => {
 // It zeros tapStartTime so the early-return guard in handleTap catches any late taps.
 function triggerSlow() {
   if (!tapStartTime) return; // already tapped
+  const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0;
   setTaps      = [];
   setTapNum    = 0;
   dontTapMode  = false;
   stopReactionTone();
+  if (mode === 'infinite') {
+    soundSlow();
+    infiniteResult(infiniteScore, ms, 'TOO SLOW');
+    return;
+  }
   soundSlow();
   if (mode === 'solo') {
     streak = 0;
@@ -475,7 +489,7 @@ function resolveDontTap() {
 // Double-rAF ensures tapStartTime is set only after the browser has fully painted the
 // green tap screen. First rAF = style/layout flush, second rAF = paint committed.
 function showTap() {
-  dontTapMode = tapSequence[setTapNum] === true;
+  dontTapMode = mode === 'infinite' ? false : tapSequence[setTapNum] === true;
   const tapTextEl = document.getElementById('tapText');
   if (dontTapMode) {
     tapTextEl.innerHTML = `<span class="dont-label">DON'T</span><span>TAP!</span>`;
@@ -488,7 +502,7 @@ function showTap() {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
       startReactionTone(780);
-      slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, 1500);
+      slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, mode === 'infinite' ? 400 : 1500);
     });
   });
 }
@@ -533,6 +547,18 @@ function handleTap(e) {
   const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0; // zero before any show() call to prevent double-fire
 
+  if (mode === 'infinite') {
+    if (ms >= 400) {
+      soundSlow();
+      infiniteResult(infiniteScore, ms, 'TOO SLOW');
+      return;
+    }
+    infiniteScore++;
+    soundGoodResult();
+    startWait();
+    return;
+  }
+
   setTaps.push(ms);
   setTapNum++;
 
@@ -562,6 +588,26 @@ scrEls.tap.addEventListener('mousedown', handleTap);
 // Adds to history (capped at 20), increments streak, shows the result screen.
 function formatBreakdown(taps) {
   return taps.join(' + ') + ' ÷ ' + taps.length + ' = ' + Math.round(taps.reduce((a, b) => a + b, 0) / taps.length) + 'ms';
+}
+
+function infiniteResult(score, ms, reason) {
+  const timeEl = document.getElementById('resultTime');
+  const gradeEl = document.getElementById('resultGrade');
+  const captionEl = document.getElementById('resultCaption');
+  const breakdownEl = document.getElementById('resultBreakdown');
+  const unitEl = document.getElementById('resultUnit');
+  const bestEl = document.getElementById('statBest');
+
+  document.getElementById('resultLabel').textContent = 'INFINITE MODE';
+  timeEl.textContent = score;
+  timeEl.style.color = 'var(--amber)';
+  unitEl.textContent = 'tests passed';
+  captionEl.textContent = reason === 'TOO SLOW' ? 'You survived:' : 'Final score';
+  breakdownEl.textContent = reason === 'TOO SLOW' ? `Reaction time ${ms}ms — you fell short of 400ms` : 'Respond in under 400ms to keep going';
+  gradeEl.textContent = score > 0 ? `🔥 ${score} PASSED` : '💥 NO SURVIVORS';
+  bestEl.textContent = `${score} passed`;
+  if (score > 0) soundGoodResult(); else soundBadResult();
+  show('result');
 }
 
 function soloResult(avg, taps) {
@@ -636,7 +682,20 @@ document.getElementById('btnStart').addEventListener('click', () => {
   startCountdown('');
 });
 
+document.getElementById('btnInfinite').addEventListener('click', () => {
+  mode = 'infinite';
+  infiniteScore = 0;
+  showScoreBar(false);
+  startCountdown('');
+});
+
 document.getElementById('btnRetry').addEventListener('click', () => {
+  if (mode === 'infinite') {
+    infiniteScore = 0;
+    showScoreBar(false);
+    startCountdown('');
+    return;
+  }
   mode = 'solo'; showScoreBar(false);
   startCountdown('');
 });
@@ -647,6 +706,7 @@ document.getElementById('btnHome').addEventListener('click', () => {
 
 function goHome() {
   setTaps = []; setTapNum = 0;
+  infiniteScore = 0;
   showScoreBar(false);
   updateBestDisplay();
   show('home');
