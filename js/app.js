@@ -248,15 +248,71 @@ let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
 // slowTimeout:  setTimeout handle for the too-slow cutoff. Cleared on successful tap.
 // mode:         'solo' or 'challenge' — controls which result flow runs after a set.
 const DEFAULT_TAP_WINDOW_MS = 1500; // Default milliseconds to tap before it's considered too slow and triggers the penalty flow.
-const INFINITE_TAP_WINDOW_MS = 999; // milliseconds to tap in infinite mode — calibrated around 400ms with some leniency for fatigue
+const INFINITE_TAP_WINDOW_MS = 999; // Starting milliseconds to tap in infinite mode — calibrated around 400ms with some leniency for fatigue
+const INFINITE_TAP_WINDOW_MIN_MS = 100; // Hard lower bound to keep the mode playable as it ramps up.
 
 let tapStartTime = 0;
 let waitTimeout  = null;
 let slowTimeout  = null;
+let tapOpacityFrame = null;
 let mode = 'solo'; // 'solo' | 'challenge' | 'infinite'
 let infiniteScore = 0;
 let infiniteFailReason = null;
 let infiniteFailMs = 0;
+let currentInfiniteTapWindow = INFINITE_TAP_WINDOW_MS;
+
+function stopTapCircleOpacityAnimation() {
+  if (tapOpacityFrame !== null) {
+    cancelAnimationFrame(tapOpacityFrame);
+    tapOpacityFrame = null;
+  }
+  const tapTextEl = document.getElementById('tapText');
+  if (tapTextEl) {
+    tapTextEl.style.setProperty('--tap-bg-opacity', '1');
+  }
+  resetTapProgressBar();
+}
+
+function resetTapProgressBar() {
+  const el = document.getElementById('tapProgressFill');
+  if (!el) return;
+  el.style.transition = 'none';
+  el.style.width = '0%';
+}
+
+function startTapProgressBar(durationMs) {
+  const el = document.getElementById('tapProgressFill');
+  if (!el) return;
+  resetTapProgressBar();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.style.transition = `width ${durationMs}ms linear`;
+      el.style.width = '100%';
+    });
+  });
+}
+
+function updateTapCircleOpacity() {
+  if (!tapStartTime) return;
+  const tapTextEl = document.getElementById('tapText');
+  if (!tapTextEl) return;
+
+  const maxWindow = mode === 'infinite' ? currentInfiniteTapWindow : DEFAULT_TAP_WINDOW_MS;
+  const elapsed = Math.min(performance.now() - tapStartTime, maxWindow);
+  const ratio = maxWindow > 0 ? elapsed / maxWindow : 1;
+  const targetOpacity = 1 - (ratio * 0.5);
+  tapTextEl.style.setProperty('--tap-bg-opacity', targetOpacity.toString());
+
+  tapOpacityFrame = requestAnimationFrame(updateTapCircleOpacity);
+}
+
+function resetInfiniteTapWindow() {
+  currentInfiniteTapWindow = INFINITE_TAP_WINDOW_MS;
+}
+
+function reduceInfiniteTapWindow() {
+  currentInfiniteTapWindow = Math.max(INFINITE_TAP_WINDOW_MIN_MS, currentInfiniteTapWindow -10);
+}
 // Set state — randomized to 6 or 7 taps per set, chosen fresh at startCountdown.
 let TAPS_PER_SET = 6;
 let setTaps   = []; // reaction times (ms) collected so far in the current set
@@ -385,6 +441,7 @@ function startCountdown(context) {
       clearInterval(interval);
       soundCountdownBeep(true);
       if (mode === 'infinite') {
+        resetInfiniteTapWindow();
         startWait();
       } else {
         showGetReady();
@@ -454,6 +511,7 @@ function triggerSlow() {
   if (!tapStartTime) return; // already tapped
   const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0;
+  stopTapCircleOpacityAnimation();
   setTaps      = [];
   setTapNum    = 0;
   dontTapMode  = false;
@@ -463,7 +521,7 @@ function triggerSlow() {
     infiniteFailReason = 'TOO SLOW';
     infiniteFailMs = ms;
     document.getElementById('earlyText').textContent = 'TOO SLOW';
-    document.getElementById('earlySub').textContent  = `Under ${INFINITE_TAP_WINDOW_MS}ms next time`;
+    document.getElementById('earlySub').textContent  = `Under ${currentInfiniteTapWindow}ms next time`;
     show('slow');
     return;
   }
@@ -483,11 +541,13 @@ function triggerSlow() {
 function resolveDontTap() {
   if (!tapStartTime) return; // already fired (tapped too early or handled)
   tapStartTime = 0;
+  stopTapCircleOpacityAnimation();
   dontTapMode  = false;
   stopReactionTone();
 
   if (mode === 'infinite') {
     infiniteScore++;
+    reduceInfiniteTapWindow();
     soundGoodResult();
     startWait();
     return;
@@ -526,9 +586,13 @@ function showTap() {
   }
   tapTextEl.classList.toggle('dont-tap', dontTapMode);
   show('tap');
+  const tapWindow = mode === 'infinite' ? currentInfiniteTapWindow : DEFAULT_TAP_WINDOW_MS;
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
+      stopTapCircleOpacityAnimation();
+      startTapProgressBar(tapWindow);
+      updateTapCircleOpacity();
       if (dontTapMode) {
         playTone(600, 'triangle', 0.25, 0.20, getAudioCtx().currentTime, false);
       } else {
@@ -536,7 +600,7 @@ function showTap() {
       }
       slowTimeout = setTimeout(
         dontTapMode ? resolveDontTap : triggerSlow,
-        mode === 'infinite' ? INFINITE_TAP_WINDOW_MS : DEFAULT_TAP_WINDOW_MS
+        tapWindow
       );
     });
   });
@@ -556,6 +620,7 @@ function handleTap(e) {
   if (!tapStartTime) return; // guard: fired before paint committed, or after triggerSlow ran
   clearTimeout(slowTimeout);
   slowTimeout = null;
+  stopTapCircleOpacityAnimation();
 
   const ms = Math.round(performance.now() - tapStartTime);
 
@@ -592,16 +657,17 @@ function handleTap(e) {
   tapStartTime = 0; // zero before any show() call to prevent double-fire
 
   if (mode === 'infinite') {
-    if (ms >= INFINITE_TAP_WINDOW_MS) {
+    if (ms >= currentInfiniteTapWindow) {
       soundSlow();
       infiniteFailReason = 'TOO SLOW';
       infiniteFailMs = ms;
       document.getElementById('earlyText').textContent = 'TOO SLOW';
-      document.getElementById('earlySub').textContent  = `Under ${INFINITE_TAP_WINDOW_MS}ms next time`;
+      document.getElementById('earlySub').textContent  = `Under ${currentInfiniteTapWindow}ms next time`;
       show('slow');
       return;
     }
     infiniteScore++;
+    reduceInfiniteTapWindow();
     soundGoodResult();
     startWait();
     return;
@@ -655,8 +721,8 @@ function infiniteResult(score, ms, reason) {
   // Otherwise present that they survived the run.
   captionEl.textContent = reason === 'TOO SLOW' ? 'Final score' : 'You survived:';
   breakdownEl.textContent = reason === 'TOO SLOW'
-    ? `Reaction time ${ms}ms — you fell short of ${INFINITE_TAP_WINDOW_MS}ms`
-    : `Respond in under ${INFINITE_TAP_WINDOW_MS}ms to keep going`;
+    ? `Reaction time ${ms}ms — you fell short of ${currentInfiniteTapWindow}ms`
+    : `Respond in under ${currentInfiniteTapWindow}ms to keep going`;
   // Normalize casing for the passed label.
   gradeEl.textContent = score > 0 ? `${score} passed` : 'TRY AGAIN';
   bestEl.textContent = `${score} passed`;
