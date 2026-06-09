@@ -252,6 +252,8 @@ let waitTimeout  = null;
 let slowTimeout  = null;
 let mode = 'solo'; // 'solo' | 'challenge' | 'infinite'
 let infiniteScore = 0;
+let infiniteFailReason = null;
+let infiniteFailMs = 0;
 // Set state — randomized to 6 or 7 taps per set, chosen fresh at startCountdown.
 let TAPS_PER_SET = 6;
 let setTaps   = []; // reaction times (ms) collected so far in the current set
@@ -408,7 +410,9 @@ function startWait() {
   } else {
     document.getElementById('waitPlayerTag').textContent = '';
   }
-  const delay = 400 + Math.random() * 3600; // 0.4s–4.0s
+  const minDelay = 400;
+  const maxDelay = mode === 'infinite' ? 2000 : 4000;
+  const delay = minDelay + Math.random() * (maxDelay - minDelay);
   waitTimeout = setTimeout(showTap, delay);
 }
 
@@ -424,7 +428,11 @@ scrEls.wait.addEventListener('pointerdown', e => {
   setTapNum = 0;
   soundEarly();
   if (mode === 'infinite') {
-    infiniteResult(infiniteScore, 0, 'TOO SOON');
+    infiniteFailReason = 'TOO SOON';
+    infiniteFailMs = 0;
+    document.getElementById('earlyText').textContent = 'TOO SOON';
+    document.getElementById('earlySub').textContent  = 'Wait for green';
+    show('early');
     return;
   }
   if (mode === 'solo') {
@@ -452,7 +460,11 @@ function triggerSlow() {
   stopReactionTone();
   if (mode === 'infinite') {
     soundSlow();
-    infiniteResult(infiniteScore, ms, 'TOO SLOW');
+    infiniteFailReason = 'TOO SLOW';
+    infiniteFailMs = ms;
+    document.getElementById('earlyText').textContent = 'TOO SLOW';
+    document.getElementById('earlySub').textContent  = 'Under 450ms next time';
+    show('slow');
     return;
   }
   soundSlow();
@@ -473,6 +485,14 @@ function resolveDontTap() {
   tapStartTime = 0;
   dontTapMode  = false;
   stopReactionTone();
+
+  if (mode === 'infinite') {
+    infiniteScore++;
+    soundGoodResult();
+    startWait();
+    return;
+  }
+
   setTapNum++;
   if (setTapNum < TAPS_PER_SET) {
     showGetReady();
@@ -489,7 +509,13 @@ function resolveDontTap() {
 // Double-rAF ensures tapStartTime is set only after the browser has fully painted the
 // green tap screen. First rAF = style/layout flush, second rAF = paint committed.
 function showTap() {
-  dontTapMode = mode === 'infinite' ? false : tapSequence[setTapNum] === true;
+  if (mode === 'infinite') {
+    // Infinite mode uses an independent don't-tap probability (40%).
+    // Keep the set-based sequence logic untouched for solo/challenge modes.
+    dontTapMode = Math.random() < 0.40;
+  } else {
+    dontTapMode = tapSequence[setTapNum] === true;
+  }
   const tapTextEl = document.getElementById('tapText');
   if (dontTapMode) {
     tapTextEl.innerHTML = `<span class="dont-label">DON'T</span><span>TAP!</span>`;
@@ -502,7 +528,10 @@ function showTap() {
     requestAnimationFrame(() => {
       tapStartTime = performance.now();
       startReactionTone(780);
-      slowTimeout = setTimeout(dontTapMode ? resolveDontTap : triggerSlow, mode === 'infinite' ? 400 : 1500);
+      slowTimeout = setTimeout(
+        dontTapMode ? resolveDontTap : triggerSlow,
+        mode === 'infinite' ? 450 : 1500
+      );
     });
   });
 }
@@ -522,6 +551,8 @@ function handleTap(e) {
   clearTimeout(slowTimeout);
   slowTimeout = null;
 
+  const ms = Math.round(performance.now() - tapStartTime);
+
   if (dontTapMode) {
     // Player tapped when they shouldn't have
     tapStartTime = 0;
@@ -530,6 +561,14 @@ function handleTap(e) {
     setTapNum = 0;
     stopReactionTone();
     soundEarly();
+    if (mode === 'infinite') {
+      infiniteFailReason = 'TOO SOON';
+      infiniteFailMs = ms;
+      document.getElementById('earlyText').textContent = "DON'T TAP!";
+      document.getElementById('earlySub').textContent  = 'You were not supposed to tap';
+      show('early');
+      return;
+    }
     if (mode === 'solo') {
       streak = 0;
       localStorage.setItem('rfx_streak', streak);
@@ -544,13 +583,16 @@ function handleTap(e) {
   }
 
   stopReactionTone();
-  const ms = Math.round(performance.now() - tapStartTime);
   tapStartTime = 0; // zero before any show() call to prevent double-fire
 
   if (mode === 'infinite') {
-    if (ms >= 400) {
+    if (ms >= 450) {
       soundSlow();
-      infiniteResult(infiniteScore, ms, 'TOO SLOW');
+      infiniteFailReason = 'TOO SLOW';
+      infiniteFailMs = ms;
+      document.getElementById('earlyText').textContent = 'TOO SLOW';
+      document.getElementById('earlySub').textContent  = 'Under 450ms next time';
+      show('slow');
       return;
     }
     infiniteScore++;
@@ -603,7 +645,7 @@ function infiniteResult(score, ms, reason) {
   timeEl.style.color = 'var(--amber)';
   unitEl.textContent = 'tests passed';
   captionEl.textContent = reason === 'TOO SLOW' ? 'You survived:' : 'Final score';
-  breakdownEl.textContent = reason === 'TOO SLOW' ? `Reaction time ${ms}ms — you fell short of 400ms` : 'Respond in under 400ms to keep going';
+  breakdownEl.textContent = reason === 'TOO SLOW' ? `Reaction time ${ms}ms — you fell short of 450ms` : 'Respond in under 450ms to keep going';
   gradeEl.textContent = score > 0 ? `🔥 ${score} PASSED` : '💥 NO SURVIVORS';
   bestEl.textContent = `${score} passed`;
   if (score > 0) soundGoodResult(); else soundBadResult();
@@ -685,6 +727,8 @@ document.getElementById('btnStart').addEventListener('click', () => {
 document.getElementById('btnInfinite').addEventListener('click', () => {
   mode = 'infinite';
   infiniteScore = 0;
+  infiniteFailReason = null;
+  infiniteFailMs = 0;
   showScoreBar(false);
   startCountdown('');
 });
@@ -706,6 +750,15 @@ document.getElementById('btnHome').addEventListener('click', () => {
 
 function goHome() {
   setTaps = []; setTapNum = 0;
+  if (mode === 'infinite' && infiniteFailReason) {
+    const score = infiniteScore;
+    const reason = infiniteFailReason;
+    const ms = infiniteFailMs;
+    infiniteFailReason = null;
+    infiniteFailMs = 0;
+    infiniteResult(score, ms, reason);
+    return;
+  }
   infiniteScore = 0;
   showScoreBar(false);
   updateBestDisplay();
@@ -713,8 +766,24 @@ function goHome() {
   loadLeaderboard();
 }
 
-document.getElementById('btnSlowContinue').addEventListener('click', goHome);
-document.getElementById('btnEarlyBack').addEventListener('click', goHome);
+function handleFailScreenBack(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  goHome();
+}
+
+const failScreenButtons = [
+  document.getElementById('btnSlowContinue'),
+  document.getElementById('btnEarlyBack')
+];
+
+failScreenButtons.forEach(btn => {
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, { passive: false });
+  btn.addEventListener('click', handleFailScreenBack);
+});
 
 // ── BLOCK ALL KEYBOARD INPUT ──
 // Buttons respond to Space/Enter natively; prevent that at capture phase.
