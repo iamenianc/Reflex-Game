@@ -307,8 +307,15 @@ function updateTapCircleOpacity() {
   tapOpacityFrame = requestAnimationFrame(updateTapCircleOpacity);
 }
 
+function setInfiniteWindowBadge(visible) {
+  const el = document.getElementById('infiniteWindowBadge');
+  el.textContent = currentInfiniteTapWindow + 'ms';
+  el.classList.toggle('hidden', !visible);
+}
+
 function resetInfiniteTapWindow() {
   currentInfiniteTapWindow = INFINITE_TAP_WINDOW_MS;
+  setInfiniteWindowBadge(true);
 }
 
 function reduceInfiniteTapWindow() {
@@ -317,6 +324,7 @@ function reduceInfiniteTapWindow() {
   } else {
     currentInfiniteTapWindow = Math.max(INFINITE_TAP_WINDOW_PHASE2_FLOOR_MS, currentInfiniteTapWindow - 10);
   }
+  setInfiniteWindowBadge(true);
 }
 // Set state — randomized to 6 or 7 taps per set, chosen fresh at startCountdown.
 let TAPS_PER_SET = 6;
@@ -710,6 +718,7 @@ function formatBreakdown(taps) {
 }
 
 function infiniteResult(score, ms, reason) {
+  setInfiniteWindowBadge(false);
   const timeEl = document.getElementById('resultTime');
   const gradeEl = document.getElementById('resultGrade');
   const captionEl = document.getElementById('resultCaption');
@@ -828,7 +837,7 @@ document.getElementById('btnRetry').addEventListener('click', () => {
 });
 
 document.getElementById('btnHome').addEventListener('click', () => {
-  showScoreBar(false); updateBestDisplay(); show('home'); loadLeaderboard();
+  setInfiniteWindowBadge(false); showScoreBar(false); updateBestDisplay(); show('home'); loadLeaderboard();
 });
 
 function goHome() {
@@ -843,6 +852,7 @@ function goHome() {
     return;
   }
   infiniteScore = 0;
+  setInfiniteWindowBadge(false);
   showScoreBar(false);
   updateBestDisplay();
   show('home');

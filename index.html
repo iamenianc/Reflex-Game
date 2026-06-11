@@ -648,9 +648,27 @@
     transition: color 0.2s, border-color 0.2s;
   }
   .bgm-toggle.on { color: var(--green); border-color: var(--green); }
+
+  /* ── INFINITE MODE WINDOW BADGE ── */
+  #infiniteWindowBadge {
+    position: fixed;
+    top: calc(14px + env(safe-area-inset-top));
+    left: calc(14px + env(safe-area-inset-left));
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    z-index: 20;
+    pointer-events: none;
+    text-transform: uppercase;
+  }
+  #infiniteWindowBadge.hidden { display: none; }
 </style>
 </head>
 <body>
+
+<!-- INFINITE MODE WINDOW BADGE -->
+<div id="infiniteWindowBadge" class="hidden"></div>
 
 <!-- SCORE BAR (shown during challenge rounds) -->
 <div class="chal-score-bar hidden" id="chalScoreBar">
