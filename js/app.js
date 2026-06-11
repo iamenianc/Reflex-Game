@@ -311,7 +311,7 @@ function resetInfiniteTapWindow() {
 }
 
 function reduceInfiniteTapWindow() {
-  currentInfiniteTapWindow = Math.max(INFINITE_TAP_WINDOW_MIN_MS, currentInfiniteTapWindow -10);
+  currentInfiniteTapWindow = Math.max(INFINITE_TAP_WINDOW_MIN_MS, currentInfiniteTapWindow -33);
 }
 // Set state — randomized to 6 or 7 taps per set, chosen fresh at startCountdown.
 let TAPS_PER_SET = 6;
