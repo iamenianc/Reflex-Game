@@ -248,8 +248,8 @@ let streak  = parseInt(localStorage.getItem('rfx_streak') || '0');
 // slowTimeout:  setTimeout handle for the too-slow cutoff. Cleared on successful tap.
 // mode:         'solo' or 'challenge' — controls which result flow runs after a set.
 const DEFAULT_TAP_WINDOW_MS = 1500; // Default milliseconds to tap before it's considered too slow and triggers the penalty flow.
-const INFINITE_TAP_WINDOW_MS = 999; // Starting milliseconds to tap in infinite mode — calibrated around 400ms with some leniency for fatigue
-const INFINITE_TAP_WINDOW_PHASE1_FLOOR_MS = 400; // Floor for tests 1–50: 40ms decrements stop here
+const INFINITE_TAP_WINDOW_MS = 800; // Starting milliseconds to tap in infinite mode — calibrated around 400ms with some leniency for fatigue
+const INFINITE_TAP_WINDOW_PHASE1_FLOOR_MS = 350; // Floor for tests 1–50: 40ms decrements stop here
 const INFINITE_TAP_WINDOW_PHASE2_FLOOR_MS = 200; // Floor for tests 51+: 10ms decrements stop here
 
 let tapStartTime = 0;
@@ -319,7 +319,7 @@ function resetInfiniteTapWindow() {
 }
 
 function reduceInfiniteTapWindow() {
-  if (infiniteScore <= 50) {
+  if (infiniteScore <= 40) {
     currentInfiniteTapWindow = Math.max(INFINITE_TAP_WINDOW_PHASE1_FLOOR_MS, currentInfiniteTapWindow - 40);
   } else {
     currentInfiniteTapWindow = Math.max(INFINITE_TAP_WINDOW_PHASE2_FLOOR_MS, currentInfiniteTapWindow - 10);
